@@ -2,6 +2,9 @@ using UnityEngine;
 
 public class GoalManager : MonoBehaviour
 {
+    public static GoalManager Instance { get; private set; }
+    public Vector3 CurrentGoalPosition => currentGoalPosition;
+
     [Tooltip("The player's vehicle transform.")]
     public Transform player;
 
@@ -21,6 +24,18 @@ public class GoalManager : MonoBehaviour
     private Vector3 currentGoalPosition;
     private float requiredDwellTime;
     private float dwellTimer;
+
+    void Awake()
+    {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+        }
+        else
+        {
+            Instance = this;
+        }
+    }
 
     void Start()
     {
