@@ -20,14 +20,17 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float motorForce = 1500f; // Torque applied to motor wheels
     [SerializeField] private float maxSteerAngle = 30f; // Max steering angle for front wheels
     [SerializeField] private float brakeForce = 3000f; // Brake torque applied to all wheels
+    [SerializeField] private float handbrakeFrictionStiffness = 0.4f; // Stiffness for drifting
 
     // Input System Actions
     private InputSystem_Actions playerInputActions;
     private float steerInput;
     private float accelerateInput;
     private float brakeInput;
+    private float handbrakeInput;
 
     private Rigidbody rb;
+    private WheelFrictionCurve originalRearSidewaysFriction;
 
     private void Awake()
     {
@@ -47,6 +50,12 @@ public class PlayerController : MonoBehaviour
 
         playerInputActions.Driver.Brake.performed += ctx => brakeInput = ctx.ReadValue<float>();
         playerInputActions.Driver.Brake.canceled += ctx => brakeInput = 0f;
+
+        playerInputActions.Driver.Handbrake.performed += ctx => handbrakeInput = ctx.ReadValue<float>();
+        playerInputActions.Driver.Handbrake.canceled += ctx => handbrakeInput = 0f;
+
+        // 드리프트를 위해 원래의 후륜 측면 마찰력 저장
+        originalRearSidewaysFriction = rearLeftWheel.sidewaysFriction;
     }
 
     private void OnEnable()
@@ -61,24 +70,77 @@ public class PlayerController : MonoBehaviour
 
     private void FixedUpdate()
     {
-        HandleMotor();
+        HandleMovement();
         HandleSteering();
-        HandleBraking();
+        HandleHandbrake();
         UpdateWheelPoses();
     }
 
-    private void HandleMotor()
+    private void HandleMovement()
     {
-        // 후륜에 모터 토크 적용 (간단화를 위해 RWD)
-        rearLeftWheel.motorTorque = accelerateInput * motorForce;
-        rearRightWheel.motorTorque = accelerateInput * motorForce;
+        // 전진(W)과 후진/브레이크(S) 입력을 -1 ~ 1 범위의 값으로 통합
+        float moveInput = accelerateInput - brakeInput;
 
-        // 가속하지 않을 때 모터 토크를 0으로 설정
-        if (accelerateInput == 0)
+        // 현재 차량의 전진 방향 속도 (m/s)
+        float forwardSpeed = Vector3.Dot(rb.linearVelocity, transform.forward);
+        
+        // S키를 눌렀고(moveInput < 0), 차가 앞으로 움직이는 중이면 브레이크 적용
+        if (moveInput < 0 && forwardSpeed > 0.1f)
         {
-            rearLeftWheel.motorTorque = 0;
-            rearRightWheel.motorTorque = 0;
+            ApplyBrake();
+            ApplyMotorTorque(0); // 브레이크 중에는 모터 토크 비활성화
         }
+        else // 그 외의 모든 경우 (전진, 후진, 정지)
+        {
+            ReleaseBrake();
+            ApplyMotorTorque(moveInput * motorForce);
+        }
+    }
+
+    private void HandleHandbrake()
+    {
+        // 핸드브레이크 입력이 있을 경우
+        if (handbrakeInput > 0)
+        {
+            // 뒷바퀴에만 강한 브레이크를 걸어 잠급니다.
+            rearLeftWheel.brakeTorque = brakeForce * 2f;
+            rearRightWheel.brakeTorque = brakeForce * 2f;
+
+            // 뒷바퀴의 측면 마찰력을 줄여 드리프트를 유도합니다.
+            var friction = rearLeftWheel.sidewaysFriction;
+            friction.stiffness = handbrakeFrictionStiffness;
+            rearLeftWheel.sidewaysFriction = friction;
+            rearRightWheel.sidewaysFriction = friction;
+        }
+        else
+        {
+            // 핸드브레이크를 떼면 원래 마찰력으로 복원합니다.
+            // 브레이크 토크는 HandleMovement에서 관리하므로 여기서는 마찰력만 복원합니다.
+            rearLeftWheel.sidewaysFriction = originalRearSidewaysFriction;
+            rearRightWheel.sidewaysFriction = originalRearSidewaysFriction;
+        }
+    }
+
+    private void ApplyMotorTorque(float torque)
+    {
+        rearLeftWheel.motorTorque = torque;
+        rearRightWheel.motorTorque = torque;
+    }
+
+    private void ApplyBrake()
+    {
+        frontLeftWheel.brakeTorque = brakeForce;
+        frontRightWheel.brakeTorque = brakeForce;
+        rearLeftWheel.brakeTorque = brakeForce;
+        rearRightWheel.brakeTorque = brakeForce;
+    }
+
+    private void ReleaseBrake()
+    {
+        frontLeftWheel.brakeTorque = 0f;
+        frontRightWheel.brakeTorque = 0f;
+        rearLeftWheel.brakeTorque = 0f;
+        rearRightWheel.brakeTorque = 0f;
     }
 
     private void HandleSteering()
@@ -86,26 +148,6 @@ public class PlayerController : MonoBehaviour
         float currentSteerAngle = maxSteerAngle * steerInput;
         frontLeftWheel.steerAngle = currentSteerAngle;
         frontRightWheel.steerAngle = currentSteerAngle;
-    }
-
-    private void HandleBraking()
-    {
-        if (brakeInput > 0.01f)
-        {
-            // 모든 휠에 브레이크 토크 적용
-            frontLeftWheel.brakeTorque = brakeForce;
-            frontRightWheel.brakeTorque = brakeForce;
-            rearLeftWheel.brakeTorque = brakeForce;
-            rearRightWheel.brakeTorque = brakeForce;
-        }
-        else
-        {
-            // 브레이크 해제
-            frontLeftWheel.brakeTorque = 0f;
-            frontRightWheel.brakeTorque = 0f;
-            rearLeftWheel.brakeTorque = 0f;
-            rearRightWheel.brakeTorque = 0f;
-        }
     }
 
     private void UpdateWheelPoses()
