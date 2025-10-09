@@ -4,7 +4,7 @@ using UnityEngine;
 public class MinimapController : MonoBehaviour
 {
     public Transform player;
-    public float orthographicSize = 15f; // Controls the zoom level. Smaller is more zoomed in.
+    public float orthographicSize = 20f; // Controls the zoom level. Smaller is more zoomed in.
 
     private Camera minimapCamera;
 
