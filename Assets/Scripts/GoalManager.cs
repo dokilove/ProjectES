@@ -2,6 +2,7 @@ using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine.SceneManagement;
+using System;
 
 public class GoalManager : MonoBehaviour
 {
@@ -25,16 +26,15 @@ public class GoalManager : MonoBehaviour
     [Tooltip("Number of goals to spawn at the start of the stage.")]
     public int initialGoalCount = 5;
     [Tooltip("Minimum distance a goal can spawn from the player's start position.")]
-    public float minSpawnDistanceFromPlayer = 100f;
+    public float minSpawnDistanceFromPlayer = 15f;
     [Tooltip("Minimum distance a goal can spawn from other goals.")]
-    public float minSpawnDistanceFromOtherGoals = 100f;
+    public float minSpawnDistanceFromOtherGoals = 10f;
     [Tooltip("How many times to try finding a valid spawn position before giving up.")]
     private int maxSpawnAttempts = 25;
 
     private List<Goal> activeGoals = new List<Goal>();
     private bool stageCleared = false;
 
-    // Internal class to manage the state of each goal
     private class Goal
     {
         public GameObject marker;
@@ -53,8 +53,7 @@ public class GoalManager : MonoBehaviour
         {
             Instance = this;
         }
-        // Initialize the random seed to ensure different results on each run
-        Random.InitState((int)System.DateTime.Now.Ticks);
+        UnityEngine.Random.InitState((int)System.DateTime.Now.Ticks);
     }
 
     void Start()
@@ -62,7 +61,7 @@ public class GoalManager : MonoBehaviour
         if (player == null || spawnArea == null)
         {
             Debug.LogError("Player or SpawnArea is not assigned in the GoalManager! Please set them up in the Inspector.");
-            this.enabled = false; // Disable script if not set up
+            this.enabled = false;
             return;
         }
 
@@ -73,7 +72,6 @@ public class GoalManager : MonoBehaviour
     {
         if (stageCleared) return;
 
-        // Iterate backwards to safely remove items from the list
         for (int i = activeGoals.Count - 1; i >= 0; i--)
         {
             Goal goal = activeGoals[i];
@@ -134,9 +132,9 @@ public class GoalManager : MonoBehaviour
         for (int i = 0; i < maxSpawnAttempts; i++)
         {
             Vector3 potentialPosition = new Vector3(
-                Random.Range(bounds.min.x, bounds.max.x),
+                UnityEngine.Random.Range(bounds.min.x, bounds.max.x),
                 spawnArea.transform.position.y,
-                Random.Range(bounds.min.z, bounds.max.z)
+                UnityEngine.Random.Range(bounds.min.z, bounds.max.z)
             );
 
             if (Vector3.Distance(player.position, potentialPosition) < minSpawnDistanceFromPlayer)
@@ -173,7 +171,7 @@ public class GoalManager : MonoBehaviour
         {
             marker = goalMarker,
             position = goalPosition,
-            requiredDwellTime = Random.Range(minDwellTime, maxDwellTime),
+            requiredDwellTime = UnityEngine.Random.Range(minDwellTime, maxDwellTime),
             dwellTimer = 0f
         };
 
