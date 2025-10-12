@@ -1,29 +1,47 @@
 using UnityEngine;
+using System.Collections.Generic;
+using System.Linq;
+using UnityEngine.SceneManagement;
 
 public class GoalManager : MonoBehaviour
 {
     public static GoalManager Instance { get; private set; }
-    public Vector3 CurrentGoalPosition => currentGoalPosition;
 
+    [Header("Core Setup")]
     [Tooltip("The player's vehicle transform.")]
     public Transform player;
-
     [Tooltip("A BoxCollider defining the area where goals can spawn.")]
     public BoxCollider spawnArea;
 
+    [Header("Goal Properties")]
     [Tooltip("How close the player needs to be to the goal to trigger the timer.")]
     public float goalRadius = 5f;
-
     [Tooltip("Minimum time in seconds the player must stay at the goal.")]
     public float minDwellTime = 2f;
-
     [Tooltip("Maximum time in seconds the player must stay at the goal.")]
     public float maxDwellTime = 5f;
 
-    private GameObject currentGoalMarker;
-    private Vector3 currentGoalPosition;
-    private float requiredDwellTime;
-    private float dwellTimer;
+    [Header("Spawning Behavior")]
+    [Tooltip("Number of goals to spawn at the start of the stage.")]
+    public int initialGoalCount = 5;
+    [Tooltip("Minimum distance a goal can spawn from the player's start position.")]
+    public float minSpawnDistanceFromPlayer = 100f;
+    [Tooltip("Minimum distance a goal can spawn from other goals.")]
+    public float minSpawnDistanceFromOtherGoals = 100f;
+    [Tooltip("How many times to try finding a valid spawn position before giving up.")]
+    private int maxSpawnAttempts = 25;
+
+    private List<Goal> activeGoals = new List<Goal>();
+    private bool stageCleared = false;
+
+    // Internal class to manage the state of each goal
+    private class Goal
+    {
+        public GameObject marker;
+        public Vector3 position;
+        public float requiredDwellTime;
+        public float dwellTimer;
+    }
 
     void Awake()
     {
@@ -35,6 +53,8 @@ public class GoalManager : MonoBehaviour
         {
             Instance = this;
         }
+        // Initialize the random seed to ensure different results on each run
+        Random.InitState((int)System.DateTime.Now.Ticks);
     }
 
     void Start()
@@ -46,65 +66,131 @@ public class GoalManager : MonoBehaviour
             return;
         }
 
-        SpawnNewGoal();
+        SpawnInitialGoals();
     }
 
     void Update()
     {
-        // Check distance on the XZ plane only
-        float distance = Vector2.Distance(new Vector2(player.position.x, player.position.z), new Vector2(currentGoalPosition.x, currentGoalPosition.z));
+        if (stageCleared) return;
 
-        if (distance < goalRadius)
+        // Iterate backwards to safely remove items from the list
+        for (int i = activeGoals.Count - 1; i >= 0; i--)
         {
-            dwellTimer += Time.deltaTime;
+            Goal goal = activeGoals[i];
+            
+            float distance = Vector2.Distance(new Vector2(player.position.x, player.position.z), new Vector2(goal.position.x, goal.position.z));
 
-            // Visual feedback for the timer: lerp color from red to green
-            float progress = dwellTimer / requiredDwellTime;
-            currentGoalMarker.GetComponent<Renderer>().material.color = Color.Lerp(Color.red, Color.green, progress);
-
-            if (dwellTimer >= requiredDwellTime)
+            if (distance < goalRadius)
             {
-                SpawnNewGoal();
+                goal.dwellTimer += Time.deltaTime;
+
+                float progress = goal.dwellTimer / goal.requiredDwellTime;
+                goal.marker.GetComponent<Renderer>().material.color = Color.Lerp(Color.red, Color.green, progress);
+
+                if (goal.dwellTimer >= goal.requiredDwellTime)
+                {
+                    Destroy(goal.marker);
+                    activeGoals.RemoveAt(i);
+                    CheckForStageClear();
+                }
+            }
+            else
+            {
+                if (goal.dwellTimer > 0)
+                {
+                    goal.dwellTimer = 0f;
+                    goal.marker.GetComponent<Renderer>().material.color = Color.red;
+                }
             }
         }
-        else
+    }
+
+    void OnGUI()
+    {
+        if (stageCleared)
         {
-            dwellTimer = 0f; // Reset timer if player leaves
-            // Reset color if it's not already red
-            if (currentGoalMarker.GetComponent<Renderer>().material.color != Color.red)
+            GUI.Box(new Rect(Screen.width / 2 - 100, Screen.height / 2 - 50, 200, 100), "Stage Cleared!");
+            if (GUI.Button(new Rect(Screen.width / 2 - 50, Screen.height / 2 - 15, 100, 30), "다시 시작"))
             {
-                currentGoalMarker.GetComponent<Renderer>().material.color = Color.red;
+                SceneManager.LoadScene(SceneManager.GetActiveScene().name);
             }
+        }
+    }
+
+    void SpawnInitialGoals()
+    {
+        for (int i = 0; i < initialGoalCount; i++)
+        {
+            SpawnNewGoal();
         }
     }
 
     void SpawnNewGoal()
     {
-        dwellTimer = 0f;
-        requiredDwellTime = Random.Range(minDwellTime, maxDwellTime);
-
         Bounds bounds = spawnArea.bounds;
-        // Find a random point within the bounds
-        currentGoalPosition = new Vector3(
-            Random.Range(bounds.min.x, bounds.max.x),
-            spawnArea.transform.position.y, // Place the goal at the same Y level as the spawn area collider
-            Random.Range(bounds.min.z, bounds.max.z)
-        );
+        Vector3 goalPosition = Vector3.zero;
+        bool positionFound = false;
 
-        if (currentGoalMarker == null)
+        for (int i = 0; i < maxSpawnAttempts; i++)
         {
-            currentGoalMarker = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            currentGoalMarker.name = "GoalMarker";
-            // We don't need the collider on the marker
-            Destroy(currentGoalMarker.GetComponent<CapsuleCollider>());
-        }
-        
-        // Make the cylinder flat to look like a circle on the ground
-        currentGoalMarker.transform.localScale = new Vector3(goalRadius * 2, 0.1f, goalRadius * 2);
-        currentGoalMarker.transform.position = currentGoalPosition;
-        // Ensure the marker color is reset to red for the new goal
-        currentGoalMarker.GetComponent<Renderer>().material.color = Color.red;
+            Vector3 potentialPosition = new Vector3(
+                Random.Range(bounds.min.x, bounds.max.x),
+                spawnArea.transform.position.y,
+                Random.Range(bounds.min.z, bounds.max.z)
+            );
 
-        Debug.Log($"New goal! Go to {currentGoalPosition} and wait for {requiredDwellTime:F1} seconds.");
+            if (Vector3.Distance(player.position, potentialPosition) < minSpawnDistanceFromPlayer)
+            {
+                continue;
+            }
+
+            bool tooCloseToAnotherGoal = activeGoals.Any(g => Vector3.Distance(g.position, potentialPosition) < minSpawnDistanceFromOtherGoals);
+            if (tooCloseToAnotherGoal)
+            {
+                continue;
+            }
+
+            goalPosition = potentialPosition;
+            positionFound = true;
+            break;
+        }
+
+        if (!positionFound)
+        {
+            Debug.LogWarning($"Could not find a valid spawn position for goal #{activeGoals.Count + 1} after {maxSpawnAttempts} attempts. Skipping this goal.");
+            return;
+        }
+
+        GameObject goalMarker = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+        goalMarker.name = "GoalMarker_" + activeGoals.Count;
+        Destroy(goalMarker.GetComponent<CapsuleCollider>());
+        
+        goalMarker.transform.localScale = new Vector3(goalRadius * 2, 0.1f, goalRadius * 2);
+        goalMarker.transform.position = goalPosition;
+        goalMarker.GetComponent<Renderer>().material.color = Color.red;
+
+        Goal newGoal = new Goal
+        {
+            marker = goalMarker,
+            position = goalPosition,
+            requiredDwellTime = Random.Range(minDwellTime, maxDwellTime),
+            dwellTimer = 0f
+        };
+
+        activeGoals.Add(newGoal);
+    }
+
+    void CheckForStageClear()
+    {
+        if (activeGoals.Count == 0)
+        {
+            stageCleared = true;
+            Debug.Log("Stage Cleared!");
+        }
+    }
+
+    public List<Vector3> GetAllGoalPositions()
+    {
+        return activeGoals.Select(g => g.position).ToList();
     }
 }

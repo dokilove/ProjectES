@@ -99,8 +99,14 @@ public class PlayerController : MonoBehaviour
 
     private void HandleHandbrake()
     {
-        // 핸드브레이크 입력이 있을 경우
-        if (handbrakeInput > 0)
+        bool aButtonPressed = false;
+        if (Gamepad.current != null)
+        {
+            aButtonPressed = Gamepad.current.buttonSouth.isPressed;
+        }
+
+        // 핸드브레이크 입력이 있을 경우 (키보드 스페이스 또는 컨트롤러 A버튼)
+        if (handbrakeInput > 0 || aButtonPressed)
         {
             // 뒷바퀴에만 강한 브레이크를 걸어 잠급니다.
             rearLeftWheel.brakeTorque = brakeForce * 2f;

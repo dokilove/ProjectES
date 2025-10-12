@@ -1,5 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
+using System.Collections.Generic;
+using System.Linq;
 
 [RequireComponent(typeof(Image))]
 public class GoalIndicator : MonoBehaviour
@@ -35,7 +37,30 @@ public class GoalIndicator : MonoBehaviour
             return;
         }
 
-        Vector3 targetWorldPos = GoalManager.Instance.CurrentGoalPosition;
+        List<Vector3> goalPositions = GoalManager.Instance.GetAllGoalPositions();
+
+        if (goalPositions.Count == 0)
+        {
+            indicatorImage.enabled = false;
+            return;
+        }
+
+        // Find the closest goal
+        Vector3 playerPos = GoalManager.Instance.player.position;
+        Vector3 closestGoalPos = Vector3.zero;
+        float closestDistSq = float.MaxValue;
+
+        foreach (Vector3 goalPos in goalPositions)
+        {
+            float distSq = (playerPos - goalPos).sqrMagnitude;
+            if (distSq < closestDistSq)
+            {
+                closestDistSq = distSq;
+                closestGoalPos = goalPos;
+            }
+        }
+
+        Vector3 targetWorldPos = closestGoalPos;
         Vector3 screenPoint = mainCamera.WorldToScreenPoint(targetWorldPos);
 
         // Check if target is on screen
