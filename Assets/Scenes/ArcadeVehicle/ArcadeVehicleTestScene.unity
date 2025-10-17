@@ -128,6 +128,10 @@ PrefabInstance:
     m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: 2063525946721105342, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
+      propertyPath: moveSpeed
+      value: 30
+      objectReference: {fileID: 0}
+    - target: {fileID: 2063525946721105342, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
       propertyPath: groundLayer.m_Bits
       value: 256
       objectReference: {fileID: 0}
@@ -141,7 +145,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5431132470905025883, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 1.65
+      value: 3.85
       objectReference: {fileID: 0}
     - target: {fileID: 5431132470905025883, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
       propertyPath: m_LocalPosition.z
@@ -248,7 +252,7 @@ Camera:
   far clip plane: 1000
   field of view: 60
   orthographic: 1
-  orthographic size: 14
+  orthographic size: 20
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
@@ -336,11 +340,62 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ManualFollowCamera
   target: {fileID: 309706357}
-  distance: 90
+  distance: 200
   yawSpeed: 120
   pitchSpeed: 120
-  pitchLimits: {x: -30, y: 80}
+  pitchLimits: {x: 5, y: 89}
   positionSmoothSpeed: 0.125
+--- !u!1 &975981313
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 975981315}
+  - component: {fileID: 975981314}
+  m_Layer: 0
+  m_Name: CityGenerator
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &975981314
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 975981313}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7a14b4721d2c84cad81b741c94036f8b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CityGenerator
+  citySizeX: 20
+  citySizeZ: 20
+  blockSize: 25
+  roadInterval: 4
+  minBuildingHeight: 10
+  maxBuildingHeight: 40
+  buildingMaterial: {fileID: 2100000, guid: 902eda84c76ba264995b31ff4b13125c, type: 2}
+--- !u!4 &975981315
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 975981313}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1137481733
 GameObject:
   m_ObjectHideFlags: 0
@@ -588,3 +643,4 @@ SceneRoots:
   - {fileID: 1988136680}
   - {fileID: 1137481737}
   - {fileID: 309706356}
+  - {fileID: 975981315}
