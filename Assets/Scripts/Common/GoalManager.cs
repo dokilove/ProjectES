@@ -13,6 +13,8 @@ public class GoalManager : MonoBehaviour
     public Transform player;
     [Tooltip("A BoxCollider defining the area where goals can spawn.")]
     public BoxCollider spawnArea;
+    [Tooltip("Reference to the CityGenerator script.")]
+    public CityGenerator cityGenerator;
 
     [Header("Goal Properties")]
     [Tooltip("How close the player needs to be to the goal to trigger the timer.")]
@@ -34,6 +36,7 @@ public class GoalManager : MonoBehaviour
 
     private List<Goal> activeGoals = new List<Goal>();
     private bool stageCleared = false;
+    private List<Vector3> roadPositions = new List<Vector3>();
 
     private class Goal
     {
@@ -63,6 +66,11 @@ public class GoalManager : MonoBehaviour
             Debug.LogError("Player or SpawnArea is not assigned in the GoalManager! Please set them up in the Inspector.");
             this.enabled = false;
             return;
+        }
+
+        if (cityGenerator != null)
+        {
+            PopulateRoadPositions();
         }
 
         SpawnInitialGoals();
@@ -125,17 +133,25 @@ public class GoalManager : MonoBehaviour
 
     void SpawnNewGoal()
     {
-        Bounds bounds = spawnArea.bounds;
         Vector3 goalPosition = Vector3.zero;
         bool positionFound = false;
 
         for (int i = 0; i < maxSpawnAttempts; i++)
         {
-            Vector3 potentialPosition = new Vector3(
-                UnityEngine.Random.Range(bounds.min.x, bounds.max.x),
-                spawnArea.transform.position.y,
-                UnityEngine.Random.Range(bounds.min.z, bounds.max.z)
-            );
+            Vector3 potentialPosition;
+            if (roadPositions.Count > 0)
+            {
+                potentialPosition = roadPositions[UnityEngine.Random.Range(0, roadPositions.Count)];
+            }
+            else
+            {
+                Bounds bounds = spawnArea.bounds;
+                potentialPosition = new Vector3(
+                    UnityEngine.Random.Range(bounds.min.x, bounds.max.x),
+                    spawnArea.transform.position.y,
+                    UnityEngine.Random.Range(bounds.min.z, bounds.max.z)
+                );
+            }
 
             if (Vector3.Distance(player.position, potentialPosition) < minSpawnDistanceFromPlayer)
             {
@@ -184,6 +200,23 @@ public class GoalManager : MonoBehaviour
         {
             stageCleared = true;
             Debug.Log("Stage Cleared!");
+        }
+    }
+
+    void PopulateRoadPositions()
+    {
+        roadPositions.Clear();
+        for (int x = 0; x < cityGenerator.citySizeX; x++)
+        {
+            for (int z = 0; z < cityGenerator.citySizeZ; z++)
+            {
+                if (x % cityGenerator.roadInterval == 0 || z % cityGenerator.roadInterval == 0)
+                {
+                    float xPos = x * cityGenerator.blockSize;
+                    float zPos = z * cityGenerator.blockSize;
+                    roadPositions.Add(new Vector3(xPos, spawnArea.transform.position.y, zPos));
+                }
+            }
         }
     }
 
