@@ -722,6 +722,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GoalManager
   player: {fileID: 1046024972}
   spawnArea: {fileID: 908801189}
+  cityGenerator: {fileID: 955890794}
   goalRadius: 5
   minDwellTime: 2
   maxDwellTime: 5

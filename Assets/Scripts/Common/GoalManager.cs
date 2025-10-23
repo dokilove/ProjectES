@@ -38,12 +38,13 @@ public class GoalManager : MonoBehaviour
     private bool stageCleared = false;
     private List<Vector3> roadPositions = new List<Vector3>();
 
-    private class Goal
+    public class Goal
     {
         public GameObject marker;
         public Vector3 position;
         public float requiredDwellTime;
         public float dwellTimer;
+        public bool isPlayerInside;
     }
 
     void Awake()
@@ -83,10 +84,8 @@ public class GoalManager : MonoBehaviour
         for (int i = activeGoals.Count - 1; i >= 0; i--)
         {
             Goal goal = activeGoals[i];
-            
-            float distance = Vector2.Distance(new Vector2(player.position.x, player.position.z), new Vector2(goal.position.x, goal.position.z));
 
-            if (distance < goalRadius)
+            if (goal.isPlayerInside)
             {
                 goal.dwellTimer += Time.deltaTime;
 
@@ -177,8 +176,11 @@ public class GoalManager : MonoBehaviour
 
         GameObject goalMarker = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
         goalMarker.name = "GoalMarker_" + activeGoals.Count;
-        Destroy(goalMarker.GetComponent<CapsuleCollider>());
         
+        CapsuleCollider collider = goalMarker.GetComponent<CapsuleCollider>();
+        collider.isTrigger = true;
+        collider.radius = goalRadius;
+
         goalMarker.transform.localScale = new Vector3(goalRadius * 2, 0.1f, goalRadius * 2);
         goalMarker.transform.position = goalPosition;
         goalMarker.GetComponent<Renderer>().material.color = Color.red;
@@ -188,10 +190,14 @@ public class GoalManager : MonoBehaviour
             marker = goalMarker,
             position = goalPosition,
             requiredDwellTime = UnityEngine.Random.Range(minDwellTime, maxDwellTime),
-            dwellTimer = 0f
+            dwellTimer = 0f,
+            isPlayerInside = false
         };
 
         activeGoals.Add(newGoal);
+
+        GoalTrigger trigger = goalMarker.AddComponent<GoalTrigger>();
+        trigger.goal = newGoal;
     }
 
     void CheckForStageClear()
@@ -223,5 +229,26 @@ public class GoalManager : MonoBehaviour
     public List<Vector3> GetAllGoalPositions()
     {
         return activeGoals.Select(g => g.position).ToList();
+    }
+}
+
+public class GoalTrigger : MonoBehaviour
+{
+    public GoalManager.Goal goal; 
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.transform == GoalManager.Instance.player)
+        {
+            goal.isPlayerInside = true;
+        }
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        if (other.transform == GoalManager.Instance.player)
+        {
+            goal.isPlayerInside = false;
+        }
     }
 }
