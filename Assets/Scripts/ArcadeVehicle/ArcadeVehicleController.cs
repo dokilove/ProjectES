@@ -5,7 +5,9 @@ using UnityEngine.InputSystem;
 public class ArcadeVehicleController : MonoBehaviour
 {
     [Header("Movement")]
-    [SerializeField] private float moveSpeed = 10f;
+    [SerializeField] private float maxSpeed = 15f;
+    [SerializeField] private float acceleration = 5f; // Adjusted for Lerp
+    [SerializeField] private float deceleration = 25f;
     [SerializeField] private float rotationSpeed = 15f;
 
     [Header("Grounding")]
@@ -21,6 +23,8 @@ public class ArcadeVehicleController : MonoBehaviour
     private Rigidbody rb;
     private InputSystem_Actions playerActions;
     private Vector2 moveInput;
+    private float currentSpeed;
+    private Vector3 moveDirection;
 
     private void Awake()
     {
@@ -101,7 +105,6 @@ public class ArcadeVehicleController : MonoBehaviour
         rb.angularVelocity = Vector3.zero;
 
         // Get camera's forward and right vectors, flattened onto the horizontal plane (y=0).
-        // This makes movement relative to where the camera is looking.
         Vector3 moveForward = Camera.main.transform.forward;
         Vector3 moveRight = Camera.main.transform.right;
 
@@ -111,16 +114,32 @@ public class ArcadeVehicleController : MonoBehaviour
         moveForward.Normalize();
         moveRight.Normalize();
 
-        // Calculate the desired movement vector based on input and camera direction.
-        Vector3 moveVector = (moveForward * moveInput.y + moveRight * moveInput.x);
+        Vector3 currentMoveVector = (moveForward * moveInput.y + moveRight * moveInput.x);
 
-        // Apply velocity to the Rigidbody.
-        rb.linearVelocity = moveVector * moveSpeed;
+        if (moveInput.sqrMagnitude > 0.1f)
+        {
+            moveDirection = currentMoveVector.normalized;
+            currentSpeed = Mathf.Lerp(currentSpeed, maxSpeed, acceleration * Time.fixedDeltaTime);
+        }
+        else
+        {
+            currentSpeed = Mathf.MoveTowards(currentSpeed, 0f, deceleration * Time.fixedDeltaTime);
+        }
+
+        // Apply velocity using the stored direction
+        rb.linearVelocity = moveDirection * currentSpeed;
+
+        // Ensure the vehicle comes to a complete stop
+        if (currentSpeed < 0.01f)
+        {
+            rb.linearVelocity = Vector3.zero;
+            currentSpeed = 0f;
+        }
 
         // If there is movement input, smoothly rotate the vehicle to face the direction of movement.
-        if (moveVector != Vector3.zero)
+        if (currentMoveVector != Vector3.zero)
         {
-            Quaternion targetRotation = Quaternion.LookRotation(moveVector);
+            Quaternion targetRotation = Quaternion.LookRotation(currentMoveVector);
             rb.rotation = Quaternion.Slerp(rb.rotation, targetRotation, rotationSpeed * Time.fixedDeltaTime);
         }
     }
