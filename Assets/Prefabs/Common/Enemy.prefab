@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 2442417905205768092}
   - component: {fileID: 7202072891557536186}
   - component: {fileID: 8331022627845506576}
+  - component: {fileID: 8485258268578485126}
   m_Layer: 9
   m_Name: Enemy
   m_TagString: Untagged
@@ -78,6 +79,33 @@ MonoBehaviour:
   detectionFovMeshFilter: {fileID: 1907227079767018992}
   detectionDuration: 1.5
   chaseDurationAfterLostSight: 3
+--- !u!54 &8485258268578485126
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2861615370398177607}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 1
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
 --- !u!1 &5115950873236807247
 GameObject:
   m_ObjectHideFlags: 0

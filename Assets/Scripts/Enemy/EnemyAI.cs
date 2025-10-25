@@ -4,7 +4,7 @@ using UnityEngine.AI;
 public class EnemyAI : MonoBehaviour
 {
     public Transform target;
-    public float moveSpeed = 3.5f;
+    public float moveSpeed = 4.2f;
     public float attackRange = 1.5f;
 
     [Header("Field of View")]
@@ -18,7 +18,7 @@ public class EnemyAI : MonoBehaviour
 
     [Header("Detection")]
     [Tooltip("Time in seconds for the detection mesh to fully expand.")]
-    public float detectionDuration = 1.5f;
+    public float detectionDuration = 1.0f;
 
     private NavMeshAgent agent;
 
@@ -275,6 +275,14 @@ public class EnemyAI : MonoBehaviour
         {
             Gizmos.color = Color.red;
             Gizmos.DrawLine(transform.position, target.position);
+        }
+    }
+
+    private void OnCollisionEnter(Collision collision)
+    {
+        if (collision.gameObject.CompareTag("Player"))
+        {
+            GoalManager.Instance.TriggerGameOver();
         }
     }
 }

@@ -985,6 +985,7 @@ MonoBehaviour:
   minBuildingHeight: 10
   maxBuildingHeight: 40
   buildingMaterial: {fileID: 0}
+  navMeshSurface: {fileID: 0}
 --- !u!4 &955890795
 Transform:
   m_ObjectHideFlags: 0
@@ -1455,6 +1456,10 @@ PrefabInstance:
     - target: {fileID: 4065093141765531827, guid: 7e33be823a8f53245810d0ee7d0e7b4e, type: 3}
       propertyPath: m_Layer
       value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 4065093141765531827, guid: 7e33be823a8f53245810d0ee7d0e7b4e, type: 3}
+      propertyPath: m_TagString
+      value: Player
       objectReference: {fileID: 0}
     - target: {fileID: 4474176758227904615, guid: 7e33be823a8f53245810d0ee7d0e7b4e, type: 3}
       propertyPath: m_Layer

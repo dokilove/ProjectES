@@ -36,6 +36,7 @@ public class GoalManager : MonoBehaviour
 
     private List<Goal> activeGoals = new List<Goal>();
     private bool stageCleared = false;
+    private bool isGameOver = false;
     private List<Vector3> roadPositions = new List<Vector3>();
 
     public class Goal
@@ -57,6 +58,8 @@ public class GoalManager : MonoBehaviour
         {
             Instance = this;
         }
+        // Reset time scale on awake, just in case it was left at 0
+        Time.timeScale = 1f;
         UnityEngine.Random.InitState((int)System.DateTime.Now.Ticks);
     }
 
@@ -79,7 +82,7 @@ public class GoalManager : MonoBehaviour
 
     void Update()
     {
-        if (stageCleared) return;
+        if (stageCleared || isGameOver) return;
 
         for (int i = activeGoals.Count - 1; i >= 0; i--)
         {
@@ -117,9 +120,27 @@ public class GoalManager : MonoBehaviour
             GUI.Box(new Rect(Screen.width / 2 - 100, Screen.height / 2 - 50, 200, 100), "Stage Cleared!");
             if (GUI.Button(new Rect(Screen.width / 2 - 50, Screen.height / 2 - 15, 100, 30), "다시 시작"))
             {
+                Time.timeScale = 1f;
                 SceneManager.LoadScene(SceneManager.GetActiveScene().name);
             }
         }
+        else if (isGameOver)
+        {
+            GUI.Box(new Rect(Screen.width / 2 - 100, Screen.height / 2 - 50, 200, 100), "Game Over");
+            if (GUI.Button(new Rect(Screen.width / 2 - 50, Screen.height / 2 - 15, 100, 30), "재시작"))
+            {
+                Time.timeScale = 1f;
+                SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+            }
+        }
+    }
+
+    public void TriggerGameOver()
+    {
+        if (isGameOver) return; // Prevent multiple triggers
+        isGameOver = true;
+        Time.timeScale = 0f; // Pause the game
+        Debug.Log("Game Over triggered!");
     }
 
     void SpawnInitialGoals()
@@ -238,7 +259,7 @@ public class GoalTrigger : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (other.transform == GoalManager.Instance.player)
+        if (other.CompareTag("Player"))
         {
             goal.isPlayerInside = true;
         }
@@ -246,7 +267,7 @@ public class GoalTrigger : MonoBehaviour
 
     private void OnTriggerExit(Collider other)
     {
-        if (other.transform == GoalManager.Instance.player)
+        if (other.CompareTag("Player"))
         {
             goal.isPlayerInside = false;
         }
