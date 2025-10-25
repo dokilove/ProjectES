@@ -11,15 +11,31 @@ public class EnemyAI : MonoBehaviour
     public float viewRadius = 10f;
     [Range(0, 360)]
     public float viewAngle = 90f;
+    [Tooltip("The material for the base FOV mesh.")]
+    public Material baseFovMaterial;
+    [Tooltip("The MeshFilter of the child object used for the detection FOV.")]
+    public MeshFilter detectionFovMeshFilter;
 
-    public LineRenderer fovLineRenderer;
+    [Header("Detection")]
+    [Tooltip("Time in seconds for the detection mesh to fully expand.")]
+    public float detectionDuration = 1.5f;
 
     private NavMeshAgent agent;
 
-    public enum EnemyState { Idle, Chasing }
+    // Base FOV
+    private Mesh baseFovMesh;
+    private MeshFilter baseFovMeshFilter;
+
+    // Detection FOV
+    private Mesh detectionFovMesh;
+    
+    private float detectionProgress; // 0 = not detected, 1 = fully detected
+
+    public enum EnemyState { Idle, Detecting, Chasing }
     private EnemyState currentState = EnemyState.Idle;
+    
     private Vector3 lastKnownPlayerPosition;
-    public float chaseDurationAfterLostSight = 3f; // How long to chase after losing sight
+    public float chaseDurationAfterLostSight = 3f;
     private float chaseTimer;
 
     void Start()
@@ -27,67 +43,125 @@ public class EnemyAI : MonoBehaviour
         agent = GetComponent<NavMeshAgent>();
         if (agent == null)
         {
-            Debug.LogError("EnemyAI: NavMeshAgent component not found on this GameObject.");
-            enabled = false; // Disable the script if no NavMeshAgent is found
+            Debug.LogError("EnemyAI: NavMeshAgent component not found.", this);
+            enabled = false;
             return;
         }
 
-        fovLineRenderer = GetComponent<LineRenderer>();
-        if (fovLineRenderer == null)
-        {
-            Debug.LogWarning("EnemyAI: LineRenderer component not found on this GameObject. In-game FOV visualization will not work.");
-        }
-        else
-        {
-            fovLineRenderer.enabled = true; // Ensure it's enabled from the start
-        }
+        SetupBaseFOV();
+        SetupDetectionFOV();
 
         agent.speed = moveSpeed;
-
-        if (target == null)
-        {
-            GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
-            if (playerObject != null)
-            {
-                target = playerObject.transform;
-                Debug.Log("EnemyAI: Found player with tag 'Player'.");
-            }
-            else
-            {
-                Debug.LogWarning("EnemyAI: Target not set and no GameObject with tag 'Player' found. Please assign a target in the Inspector or ensure player is tagged.");
-            }
-        }
+        FindPlayer();
     }
 
     void Update()
     {
         if (target == null)
         {
-            GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
-            if (playerObject != null)
+            FindPlayer();
+            if (target == null)
             {
-                target = playerObject.transform;
-            }
-            else
-            {
-                // If still no target, do nothing
-                if (fovLineRenderer != null) fovLineRenderer.enabled = false;
+                // If still no target, clear meshes and do nothing
+                if (baseFovMesh != null) baseFovMesh.Clear();
+                if (detectionFovMesh != null) detectionFovMesh.Clear();
                 return;
             }
         }
 
         bool playerInFOV = CheckFOV();
+        HandleStateMachine(playerInFOV);
 
+        DrawBaseFOVMesh();
+        DrawDetectionFOVMesh();
+    }
+
+    private void SetupBaseFOV()
+    {
+        baseFovMeshFilter = GetComponent<MeshFilter>();
+        if (baseFovMeshFilter == null)
+        {
+            baseFovMeshFilter = gameObject.AddComponent<MeshFilter>();
+        }
+
+        MeshRenderer baseFovMeshRenderer = GetComponent<MeshRenderer>();
+        if (baseFovMeshRenderer == null)
+        {
+            baseFovMeshRenderer = gameObject.AddComponent<MeshRenderer>();
+        }
+
+        baseFovMesh = new Mesh { name = "BaseFOVMesh" };
+        baseFovMeshFilter.mesh = baseFovMesh;
+
+        if (baseFovMaterial != null)
+        {
+            baseFovMeshRenderer.material = baseFovMaterial;
+        }
+        else
+        {
+            Debug.LogWarning("EnemyAI: Base FOV Material is not set.", this);
+        }
+    }
+
+    private void SetupDetectionFOV()
+    {
+        if (detectionFovMeshFilter == null)
+        {
+            Debug.LogError("EnemyAI: Detection FOV Mesh Filter is not assigned in the Inspector!", this);
+            enabled = false;
+            return;
+        }
+        detectionFovMesh = new Mesh { name = "DetectionFOVMesh" };
+        detectionFovMeshFilter.mesh = detectionFovMesh;
+    }
+
+    private void FindPlayer()
+    {
+        GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
+        if (playerObject != null)
+        {
+            target = playerObject.transform;
+        }
+    }
+
+    private void HandleStateMachine(bool playerInFOV)
+    {
         switch (currentState)
         {
             case EnemyState.Idle:
                 if (playerInFOV)
                 {
-                    currentState = EnemyState.Chasing;
-                    lastKnownPlayerPosition = target.position;
-                    chaseTimer = chaseDurationAfterLostSight;
-                    if (fovLineRenderer != null) fovLineRenderer.enabled = true;
-                    Debug.Log("Enemy: Player detected, starting chase!");
+                    currentState = EnemyState.Detecting;
+                    Debug.Log("Enemy: Player spotted, beginning detection...");
+                }
+                else
+                {
+                    // Slowly decrease detection progress if player is not in sight
+                    detectionProgress = Mathf.Max(0, detectionProgress - (1 / detectionDuration) * Time.deltaTime);
+                }
+                break;
+
+            case EnemyState.Detecting:
+                if (playerInFOV)
+                {
+                    // Increase detection progress
+                    detectionProgress = Mathf.Min(1, detectionProgress + (1 / detectionDuration) * Time.deltaTime);
+
+                    // Check if the expanding detection radius has reached the player
+                    float currentDetectionRadius = viewRadius * detectionProgress;
+                    if (Vector3.Distance(transform.position, target.position) <= currentDetectionRadius)
+                    {
+                        currentState = EnemyState.Chasing;
+                        lastKnownPlayerPosition = target.position;
+                        chaseTimer = chaseDurationAfterLostSight;
+                        Debug.Log("Enemy: Detection complete, starting chase!");
+                    }
+                }
+                else
+                {
+                    // If player is lost during detection, go back to idle to handle decay
+                    currentState = EnemyState.Idle;
+                    Debug.Log("Enemy: Player lost during detection, returning to idle.");
                 }
                 break;
 
@@ -95,27 +169,15 @@ public class EnemyAI : MonoBehaviour
                 if (playerInFOV)
                 {
                     lastKnownPlayerPosition = target.position;
-                    chaseTimer = chaseDurationAfterLostSight; // Reset timer
-                    if (agent.isOnNavMesh)
-                    {
-                        agent.SetDestination(target.position);
-                    }
-                    // Check if within attack range (optional, for future implementation)
-                    if (Vector3.Distance(transform.position, target.position) <= attackRange)
-                    {
-                        // TODO: Implement attack logic here
-                        // Debug.Log("Enemy: Attacking target!");
-                    }
+                    chaseTimer = chaseDurationAfterLostSight;
+                    if (agent.isOnNavMesh) agent.SetDestination(target.position);
                 }
-                else // Player not in FOV, but still chasing
+                else
                 {
                     chaseTimer -= Time.deltaTime;
                     if (chaseTimer > 0)
                     {
-                        if (agent.isOnNavMesh)
-                        {
-                            agent.SetDestination(lastKnownPlayerPosition);
-                        }
+                        if (agent.isOnNavMesh) agent.SetDestination(lastKnownPlayerPosition);
                     }
                     else
                     {
@@ -125,8 +187,6 @@ public class EnemyAI : MonoBehaviour
                 }
                 break;
         }
-
-        DrawFOVInGame();
     }
 
     private bool CheckFOV()
@@ -136,84 +196,85 @@ public class EnemyAI : MonoBehaviour
         Vector3 directionToTarget = (target.position - transform.position).normalized;
         float distanceToTarget = Vector3.Distance(transform.position, target.position);
 
-        // Check if target is within view radius
         if (distanceToTarget < viewRadius)
         {
-            // Check if target is within view angle
-            float angleToTarget = Vector3.Angle(transform.forward, directionToTarget);
-            if (angleToTarget < viewAngle / 2)
+            if (Vector3.Angle(transform.forward, directionToTarget) < viewAngle / 2)
             {
-                // Check for obstacles using Raycast
-                RaycastHit hit;
-                if (Physics.Raycast(transform.position, directionToTarget, out hit, viewRadius))
+                if (Physics.Raycast(transform.position, directionToTarget, out RaycastHit hit, viewRadius))
                 {
-                    if (hit.transform == target)
-                    {
-                        return true; // Player is in FOV and line of sight is clear
-                    }
+                    return hit.transform == target;
                 }
             }
         }
         return false;
     }
 
-    private void DrawFOVInGame()
+    private void DrawBaseFOVMesh()
     {
-        if (fovLineRenderer == null) return;
+        DrawFOVMesh(baseFovMesh, viewRadius);
+    }
 
-        int segments = 20; // Number of segments to draw the arc
-        Vector3[] points = new Vector3[segments + 2];
-        points[0] = transform.position; // Center point
+    private void DrawDetectionFOVMesh()
+    {
+        float currentDetectionRadius = viewRadius * detectionProgress;
+        DrawFOVMesh(detectionFovMesh, currentDetectionRadius);
+    }
 
-        float currentAngle = -viewAngle / 2;
-        for (int i = 0; i <= segments; i++)
+    private void DrawFOVMesh(Mesh mesh, float radius)
+    {
+        if (radius <= 0)
         {
-            Vector3 direction = Quaternion.Euler(0, currentAngle, 0) * transform.forward;
-            points[i + 1] = transform.position + direction * viewRadius;
-            currentAngle += (viewAngle / segments);
+            mesh.Clear();
+            return;
         }
 
-        fovLineRenderer.positionCount = points.Length;
-        fovLineRenderer.SetPositions(points);
+        int segments = 20;
+        int vertexCount = segments + 2;
+        Vector3[] vertices = new Vector3[vertexCount];
+        int[] triangles = new int[segments * 3];
+
+        vertices[0] = Vector3.zero;
+
+        float angleIncrement = viewAngle / segments;
+        float currentAngle = -viewAngle / 2;
+
+        for (int i = 0; i <= segments; i++)
+        {
+            Vector3 direction = Quaternion.Euler(0, currentAngle, 0) * Vector3.forward;
+            vertices[i + 1] = direction * radius;
+            currentAngle += angleIncrement;
+        }
+
+        for (int i = 0; i < segments; i++)
+        {
+            int triangleIndex = i * 3;
+            triangles[triangleIndex] = 0;
+            triangles[triangleIndex + 1] = i + 1;
+            triangles[triangleIndex + 2] = i + 2;
+        }
+
+        mesh.Clear();
+        mesh.vertices = vertices;
+        mesh.triangles = triangles;
+        mesh.RecalculateNormals();
     }
 
     private void OnDrawGizmosSelected()
     {
-        // Draw view radius
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, viewRadius);
 
-        // Draw view angle
-        Vector3 forward = transform.forward;
-        Vector3 leftRayDirection = Quaternion.Euler(0, -viewAngle / 2, 0) * forward;
-        Vector3 rightRayDirection = Quaternion.Euler(0, viewAngle / 2, 0) * forward;
+        Vector3 leftRayDirection = Quaternion.Euler(0, -viewAngle / 2, 0) * transform.forward;
+        Vector3 rightRayDirection = Quaternion.Euler(0, viewAngle / 2, 0) * transform.forward;
 
         Gizmos.color = Color.blue;
         Gizmos.DrawRay(transform.position, leftRayDirection * viewRadius);
         Gizmos.DrawRay(transform.position, rightRayDirection * viewRadius);
 
-        // Draw a line to the target if it's visible
-        if (target != null)
+        if (target != null && CheckFOV())
         {
-            Vector3 directionToTarget = (target.position - transform.position).normalized;
-            float distanceToTarget = Vector3.Distance(transform.position, target.position);
-
-            if (distanceToTarget < viewRadius)
-            {
-                float angleToTarget = Vector3.Angle(transform.forward, directionToTarget);
-                if (angleToTarget < viewAngle / 2)
-                {
-                    RaycastHit hit;
-                    if (Physics.Raycast(transform.position, directionToTarget, out hit, viewRadius))
-                    {
-                        if (hit.transform == target)
-                        {
-                            Gizmos.color = Color.red; // Player is seen
-                            Gizmos.DrawLine(transform.position, target.position);
-                        }
-                    }
-                }
-            }
+            Gizmos.color = Color.red;
+            Gizmos.DrawLine(transform.position, target.position);
         }
     }
 }
