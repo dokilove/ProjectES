@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 6309128768086929651}
   - component: {fileID: 1424647313232068261}
   - component: {fileID: 5259407322314299804}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: RearLeftWheel_m
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -100,7 +100,7 @@ GameObject:
   - component: {fileID: 5873020689182484121}
   - component: {fileID: 6442886974572537699}
   - component: {fileID: 2302278451326120516}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: FrontLeftWheel_m
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -190,9 +190,9 @@ GameObject:
   - component: {fileID: 4534779779391606710}
   - component: {fileID: 8278562529358618467}
   - component: {fileID: 2063525946721105342}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: ArcadeVehicle
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -278,8 +278,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e15ee118a6128df499bea1c737c2cb52, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ArcadeVehicleController
-  moveSpeed: 15
+  maxSpeed: 15
+  acceleration: 20
+  deceleration: 25
   rotationSpeed: 15
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 0
+  groundCheckDistance: 50
+  extraGravityForce: 20
 --- !u!1 &4474176758227904615
 GameObject:
   m_ObjectHideFlags: 0
@@ -291,7 +298,7 @@ GameObject:
   - component: {fileID: 4461188366330670704}
   - component: {fileID: 5651006058491660587}
   - component: {fileID: 1512794244514707352}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: RearRightWheel_m
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -380,7 +387,7 @@ GameObject:
   - component: {fileID: 2989166796348428312}
   - component: {fileID: 5389645324994133468}
   - component: {fileID: 7001885196707741712}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: FrontRightWheel_m
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -469,7 +476,7 @@ GameObject:
   - component: {fileID: 5433673511545262475}
   - component: {fileID: 3513604218208233071}
   - component: {fileID: 2501450768204168044}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Cube (1)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -558,7 +565,7 @@ GameObject:
   - component: {fileID: 8279250796839421755}
   - component: {fileID: 6583567450357256117}
   - component: {fileID: 6742672815095357349}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Cube
   m_TagString: Untagged
   m_Icon: {fileID: 0}

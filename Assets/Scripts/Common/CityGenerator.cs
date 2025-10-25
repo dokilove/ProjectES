@@ -1,4 +1,5 @@
 using UnityEngine;
+using Unity.AI.Navigation;
 
 public class CityGenerator : MonoBehaviour
 {
@@ -19,6 +20,9 @@ public class CityGenerator : MonoBehaviour
     public float maxBuildingHeight = 40f;
     [Tooltip("Material to apply to the generated buildings.")]
     public Material buildingMaterial;
+    [Header("NavMesh")]
+    [Tooltip("Reference to the NavMeshSurface component for runtime baking.")]
+    public NavMeshSurface navMeshSurface;
 
     void Start()
     {
@@ -60,6 +64,16 @@ public class CityGenerator : MonoBehaviour
         else
         {
             Debug.LogWarning("CityGenerator: 생성된 빌딩이 없습니다. Road Interval이 너무 작거나 City Size가 작지 않은지 확인해주세요.");
+        }
+
+        if (navMeshSurface != null)
+        {
+            navMeshSurface.BuildNavMesh();
+            Debug.Log("CityGenerator: NavMesh를 성공적으로 빌드했습니다.");
+        }
+        else
+        {
+            Debug.LogWarning("CityGenerator: NavMeshSurface가 할당되지 않았습니다. NavMesh를 빌드할 수 없습니다.");
         }
     }
 
