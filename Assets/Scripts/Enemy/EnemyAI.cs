@@ -19,6 +19,8 @@ public class EnemyAI : MonoBehaviour
     [Header("Detection")]
     [Tooltip("Time in seconds for the detection mesh to fully expand.")]
     public float detectionDuration = 1.0f;
+    [Tooltip("How fast the enemy turns to face the player while chasing.")]
+    public float rotationSpeed = 10f;
 
     private NavMeshAgent agent;
 
@@ -171,6 +173,11 @@ public class EnemyAI : MonoBehaviour
                     lastKnownPlayerPosition = target.position;
                     chaseTimer = chaseDurationAfterLostSight;
                     if (agent.isOnNavMesh) agent.SetDestination(target.position);
+
+                    // Smoothly rotate to face the player
+                    Vector3 direction = (target.position - transform.position).normalized;
+                    Quaternion lookRotation = Quaternion.LookRotation(new Vector3(direction.x, 0, direction.z));
+                    transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime * rotationSpeed);
                 }
                 else
                 {
