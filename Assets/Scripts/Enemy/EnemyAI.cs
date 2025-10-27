@@ -22,6 +22,9 @@ public class EnemyAI : MonoBehaviour
     [Tooltip("How fast the enemy turns to face the player while chasing.")]
     public float rotationSpeed = 10f;
 
+    [Tooltip("한 번 추적을 시작하면 절대 멈추지 않을지 여부입니다.")]
+    public bool neverStopChasing = false;
+
     private NavMeshAgent agent;
 
     // Base FOV
@@ -168,10 +171,11 @@ public class EnemyAI : MonoBehaviour
                 break;
 
             case EnemyState.Chasing:
-                if (playerInFOV)
+                // 'neverStopChasing' 모드이거나 플레이어가 시야에 있으면, 항상 최신 위치로 추적
+                if (neverStopChasing || playerInFOV)
                 {
                     lastKnownPlayerPosition = target.position;
-                    chaseTimer = chaseDurationAfterLostSight;
+                    chaseTimer = chaseDurationAfterLostSight; // 타이머 리셋 (기존 로직을 위해)
                     if (agent.isOnNavMesh) agent.SetDestination(target.position);
 
                     // Smoothly rotate to face the player
@@ -179,15 +183,17 @@ public class EnemyAI : MonoBehaviour
                     Quaternion lookRotation = Quaternion.LookRotation(new Vector3(direction.x, 0, direction.z));
                     transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime * rotationSpeed);
                 }
-                else
+                else // 'neverStopChasing'가 아니고, 플레이어가 시야에 없을 때만 기존 로직 실행
                 {
                     chaseTimer -= Time.deltaTime;
                     if (chaseTimer > 0)
                     {
+                        // 시야를 놓쳤지만 아직 추적 유예 시간일 때
                         if (agent.isOnNavMesh) agent.SetDestination(lastKnownPlayerPosition);
                     }
                     else
                     {
+                        // 추적 실패, Idle 상태로 복귀
                         currentState = EnemyState.Idle;
                         Debug.Log("Enemy: Lost player, returning to idle.");
                     }
@@ -227,45 +233,47 @@ public class EnemyAI : MonoBehaviour
         DrawFOVMesh(detectionFovMesh, currentDetectionRadius);
     }
 
-    private void DrawFOVMesh(Mesh mesh, float radius)
-    {
-        if (radius <= 0)
+        private void DrawFOVMesh(Mesh mesh, float radius)
         {
+            if (radius <= 0)
+            {
+                mesh.Clear();
+                return;
+            }
+    
+            int segments = 20;
+            int vertexCount = segments + 2;
+            Vector3[] vertices = new Vector3[vertexCount];
+            int[] triangles = new int[segments * 3];
+    
+            float yOffset = 0.1f; // Z-파이팅 방지를 위한 수직 오프셋
+            Vector3 verticalOffset = Vector3.up * yOffset;
+    
+            vertices[0] = verticalOffset;
+    
+            float angleIncrement = viewAngle / segments;
+            float currentAngle = -viewAngle / 2;
+    
+            for (int i = 0; i <= segments; i++)
+            {
+                Vector3 direction = Quaternion.Euler(0, currentAngle, 0) * Vector3.forward;
+                vertices[i + 1] = direction * radius + verticalOffset;
+                currentAngle += angleIncrement;
+            }
+    
+            for (int i = 0; i < segments; i++)
+            {
+                int triangleIndex = i * 3;
+                triangles[triangleIndex] = 0;
+                triangles[triangleIndex + 1] = i + 1;
+                triangles[triangleIndex + 2] = i + 2;
+            }
+    
             mesh.Clear();
-            return;
+            mesh.vertices = vertices;
+            mesh.triangles = triangles;
+            mesh.RecalculateNormals();
         }
-
-        int segments = 20;
-        int vertexCount = segments + 2;
-        Vector3[] vertices = new Vector3[vertexCount];
-        int[] triangles = new int[segments * 3];
-
-        vertices[0] = Vector3.zero;
-
-        float angleIncrement = viewAngle / segments;
-        float currentAngle = -viewAngle / 2;
-
-        for (int i = 0; i <= segments; i++)
-        {
-            Vector3 direction = Quaternion.Euler(0, currentAngle, 0) * Vector3.forward;
-            vertices[i + 1] = direction * radius;
-            currentAngle += angleIncrement;
-        }
-
-        for (int i = 0; i < segments; i++)
-        {
-            int triangleIndex = i * 3;
-            triangles[triangleIndex] = 0;
-            triangles[triangleIndex + 1] = i + 1;
-            triangles[triangleIndex + 2] = i + 2;
-        }
-
-        mesh.Clear();
-        mesh.vertices = vertices;
-        mesh.triangles = triangles;
-        mesh.RecalculateNormals();
-    }
-
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.yellow;
