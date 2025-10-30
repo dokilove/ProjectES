@@ -13,6 +13,11 @@ public class SpringArmCamera : MonoBehaviour
     private float currentYaw = 0f;   // Y축 회전 (좌우)
     private float currentPitch = 0f; // X축 회전 (상하)
 
+    private Vector3 initialOffsetFromTarget;
+
+    private float initialYaw;
+    private float initialPitch;
+
     private void Awake()
     {
         playerInputActions = new InputSystem_Actions();
@@ -20,6 +25,27 @@ public class SpringArmCamera : MonoBehaviour
         // CameraLook 액션에 대한 콜백 구독
         playerInputActions.Driver.CameraLook.performed += ctx => cameraLookInput = ctx.ReadValue<Vector2>();
         playerInputActions.Driver.CameraLook.canceled += ctx => cameraLookInput = Vector2.zero;
+    }
+
+    private void Start()
+    {
+        if (target == null)
+        {
+            Debug.LogError("SpringArmCamera: Target is not assigned.", this);
+            enabled = false;
+            return;
+        }
+
+        initialOffsetFromTarget = transform.position - target.position;
+
+        // Extract initial yaw and pitch from the initial rotation relative to the target's forward
+        // This assumes the camera starts looking somewhat behind the target
+        Vector3 relativeForward = Quaternion.Inverse(target.rotation) * transform.forward;
+        initialYaw = Mathf.Atan2(relativeForward.x, relativeForward.z) * Mathf.Rad2Deg;
+        initialPitch = Mathf.Asin(relativeForward.y) * Mathf.Rad2Deg;
+
+        currentYaw = initialYaw;
+        currentPitch = initialPitch;
     }
 
     private void OnEnable()
@@ -50,5 +76,16 @@ public class SpringArmCamera : MonoBehaviour
         // 카메라 리그에 회전 적용
         float targetYaw = target.eulerAngles.y + currentYaw;
         transform.rotation = Quaternion.Euler(currentPitch, targetYaw, 0f);
+    }
+
+    public void ResetCamera()
+    {
+        if (target == null) return;
+
+        transform.position = target.position + initialOffsetFromTarget;
+
+        currentYaw = initialYaw;
+        currentPitch = initialPitch;
+        cameraLookInput = Vector2.zero;
     }
 }

@@ -172,6 +172,15 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""CameraReset"",
+                    ""type"": ""Button"",
+                    ""id"": ""7978df12-e502-489e-be8f-6c0bcbd5cc8c"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -557,6 +566,28 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""groups"": ""Keyboard&Mouse"",
                     ""action"": ""Crouch"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""c465dbd2-a4e9-4ff6-849e-66d8cd4897d5"",
+                    ""path"": ""<Gamepad>/rightStickPress"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""CameraReset"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""0dd650f1-1a62-4967-9366-61da2575f33b"",
+                    ""path"": ""<Mouse>/middleButton"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""CameraReset"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -1245,6 +1276,15 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": true
+                },
+                {
+                    ""name"": ""CameraReset"",
+                    ""type"": ""Button"",
+                    ""id"": ""62a00e3a-8516-44af-92ec-08202e42313d"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -1443,6 +1483,28 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""groups"": """",
                     ""action"": ""CameraLook"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""e9339a11-1046-4b2a-b867-bc26ab2847c2"",
+                    ""path"": ""<Gamepad>/rightStickPress"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""CameraReset"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""f6a8906b-ee5e-4a1c-a782-e62253987745"",
+                    ""path"": ""<Mouse>/middleButton"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""CameraReset"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -1884,6 +1946,7 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
         m_Player_Previous = m_Player.FindAction("Previous", throwIfNotFound: true);
         m_Player_Next = m_Player.FindAction("Next", throwIfNotFound: true);
         m_Player_Sprint = m_Player.FindAction("Sprint", throwIfNotFound: true);
+        m_Player_CameraReset = m_Player.FindAction("CameraReset", throwIfNotFound: true);
         // Camera_Arcade
         m_Camera_Arcade = asset.FindActionMap("Camera_Arcade", throwIfNotFound: true);
         m_Camera_Arcade_CameraMove = m_Camera_Arcade.FindAction("CameraMove", throwIfNotFound: true);
@@ -1910,6 +1973,7 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
         m_Driver_ChangeCam = m_Driver.FindAction("ChangeCam", throwIfNotFound: true);
         m_Driver_LookBack = m_Driver.FindAction("LookBack", throwIfNotFound: true);
         m_Driver_CameraLook = m_Driver.FindAction("CameraLook", throwIfNotFound: true);
+        m_Driver_CameraReset = m_Driver.FindAction("CameraReset", throwIfNotFound: true);
         // Vehicle_Arcade
         m_Vehicle_Arcade = asset.FindActionMap("Vehicle_Arcade", throwIfNotFound: true);
         m_Vehicle_Arcade_Move = m_Vehicle_Arcade.FindAction("Move", throwIfNotFound: true);
@@ -2010,6 +2074,7 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
     private readonly InputAction m_Player_Previous;
     private readonly InputAction m_Player_Next;
     private readonly InputAction m_Player_Sprint;
+    private readonly InputAction m_Player_CameraReset;
     /// <summary>
     /// Provides access to input actions defined in input action map "Player".
     /// </summary>
@@ -2057,6 +2122,10 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "Player/Sprint".
         /// </summary>
         public InputAction @Sprint => m_Wrapper.m_Player_Sprint;
+        /// <summary>
+        /// Provides access to the underlying input action "Player/CameraReset".
+        /// </summary>
+        public InputAction @CameraReset => m_Wrapper.m_Player_CameraReset;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -2110,6 +2179,9 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
             @Sprint.started += instance.OnSprint;
             @Sprint.performed += instance.OnSprint;
             @Sprint.canceled += instance.OnSprint;
+            @CameraReset.started += instance.OnCameraReset;
+            @CameraReset.performed += instance.OnCameraReset;
+            @CameraReset.canceled += instance.OnCameraReset;
         }
 
         /// <summary>
@@ -2148,6 +2220,9 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
             @Sprint.started -= instance.OnSprint;
             @Sprint.performed -= instance.OnSprint;
             @Sprint.canceled -= instance.OnSprint;
+            @CameraReset.started -= instance.OnCameraReset;
+            @CameraReset.performed -= instance.OnCameraReset;
+            @CameraReset.canceled -= instance.OnCameraReset;
         }
 
         /// <summary>
@@ -2495,6 +2570,7 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
     private readonly InputAction m_Driver_ChangeCam;
     private readonly InputAction m_Driver_LookBack;
     private readonly InputAction m_Driver_CameraLook;
+    private readonly InputAction m_Driver_CameraReset;
     /// <summary>
     /// Provides access to input actions defined in input action map "Driver".
     /// </summary>
@@ -2538,6 +2614,10 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "Driver/CameraLook".
         /// </summary>
         public InputAction @CameraLook => m_Wrapper.m_Driver_CameraLook;
+        /// <summary>
+        /// Provides access to the underlying input action "Driver/CameraReset".
+        /// </summary>
+        public InputAction @CameraReset => m_Wrapper.m_Driver_CameraReset;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -2588,6 +2668,9 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
             @CameraLook.started += instance.OnCameraLook;
             @CameraLook.performed += instance.OnCameraLook;
             @CameraLook.canceled += instance.OnCameraLook;
+            @CameraReset.started += instance.OnCameraReset;
+            @CameraReset.performed += instance.OnCameraReset;
+            @CameraReset.canceled += instance.OnCameraReset;
         }
 
         /// <summary>
@@ -2623,6 +2706,9 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
             @CameraLook.started -= instance.OnCameraLook;
             @CameraLook.performed -= instance.OnCameraLook;
             @CameraLook.canceled -= instance.OnCameraLook;
+            @CameraReset.started -= instance.OnCameraReset;
+            @CameraReset.performed -= instance.OnCameraReset;
+            @CameraReset.canceled -= instance.OnCameraReset;
         }
 
         /// <summary>
@@ -2931,6 +3017,13 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnSprint(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "CameraReset" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnCameraReset(InputAction.CallbackContext context);
     }
     /// <summary>
     /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "Camera_Arcade" which allows adding and removing callbacks.
@@ -3095,6 +3188,13 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnCameraLook(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "CameraReset" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnCameraReset(InputAction.CallbackContext context);
     }
     /// <summary>
     /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "Vehicle_Arcade" which allows adding and removing callbacks.
