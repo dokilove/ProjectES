@@ -464,10 +464,10 @@ Rigidbody:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4065093141765531827}
   serializedVersion: 5
-  m_Mass: 1500
+  m_Mass: 100
   m_LinearDamping: 0
   m_AngularDamping: 0.05
-  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_CenterOfMass: {x: 0, y: 0, z: -1}
   m_InertiaTensor: {x: 1, y: 1, z: 1}
   m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
   m_IncludeLayers:
@@ -503,9 +503,8 @@ MonoBehaviour:
   frontRightTransform: {fileID: 2989166796348428312}
   rearLeftTransform: {fileID: 6309128768086929651}
   rearRightTransform: {fileID: 4461188366330670704}
-  motorForce: 2000
-  maxSteerAngle: 30
-  brakeForce: 3000
+  wheelSettings: {fileID: 11400000, guid: 6b99534ccfea3d04bafaf2e4015bd59e, type: 2}
+  springArmCamera: {fileID: 0}
 --- !u!1 &4474176758227904615
 GameObject:
   m_ObjectHideFlags: 0

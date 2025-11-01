@@ -17,10 +17,10 @@ public class PlayerController : MonoBehaviour
     public Transform rearRightTransform;
 
     [Header("Movement Settings")]
-    [SerializeField] private float motorForce = 1500f; // Torque applied to motor wheels
-    [SerializeField] private float maxSteerAngle = 30f; // Max steering angle for front wheels
-    [SerializeField] private float brakeForce = 3000f; // Brake torque applied to all wheels
-    [SerializeField] private float handbrakeFrictionStiffness = 0.4f; // Stiffness for drifting
+    [SerializeField] private WheelSettingsSO wheelSettings; // 휠 설정 ScriptableObject
+
+    [Header("Dependencies")]
+    [SerializeField] private SpringArmCamera springArmCamera; // 카메라 리셋을 위해 참조
 
     // Input System Actions
     private InputSystem_Actions playerInputActions;
@@ -39,6 +39,13 @@ public class PlayerController : MonoBehaviour
         rb.isKinematic = false;
         rb.useGravity = true;
 
+        if (wheelSettings == null)
+        {
+            Debug.LogError("PlayerController: WheelSettingsSO is not assigned!", this);
+            enabled = false;
+            return;
+        }
+
         playerInputActions = new InputSystem_Actions();
 
         // 입력 액션에 대한 콜백 구독
@@ -54,8 +61,31 @@ public class PlayerController : MonoBehaviour
         playerInputActions.Driver.Handbrake.performed += ctx => handbrakeInput = ctx.ReadValue<float>();
         playerInputActions.Driver.Handbrake.canceled += ctx => handbrakeInput = 0f;
 
+        playerInputActions.Driver.CameraReset.performed += OnCameraReset;
+
         // 드리프트를 위해 원래의 후륜 측면 마찰력 저장
         originalRearSidewaysFriction = rearLeftWheel.sidewaysFriction;
+
+        // 기본 측면 마찰력 설정 (미끄러움 방지)
+        SetSidewaysFrictionStiffness(frontLeftWheel, wheelSettings.defaultSidewaysFrictionStiffness);
+        SetSidewaysFrictionStiffness(frontRightWheel, wheelSettings.defaultSidewaysFrictionStiffness);
+        SetSidewaysFrictionStiffness(rearLeftWheel, wheelSettings.defaultSidewaysFrictionStiffness);
+        SetSidewaysFrictionStiffness(rearRightWheel, wheelSettings.defaultSidewaysFrictionStiffness);
+    }
+
+    private void SetSidewaysFrictionStiffness(WheelCollider wheel, float stiffness)
+    {
+        var friction = wheel.sidewaysFriction;
+        friction.stiffness = stiffness;
+        wheel.sidewaysFriction = friction;
+    }
+
+    private void OnCameraReset(InputAction.CallbackContext context)
+    {
+        if (springArmCamera != null)
+        {
+            springArmCamera.ResetCamera();
+        }
     }
 
     private void OnEnable()
@@ -74,6 +104,7 @@ public class PlayerController : MonoBehaviour
         HandleSteering();
         HandleHandbrake();
         UpdateWheelPoses();
+        ApplySpeedLimit();
     }
 
     private void HandleMovement()
@@ -93,7 +124,7 @@ public class PlayerController : MonoBehaviour
         else // 그 외의 모든 경우 (전진, 후진, 정지)
         {
             ReleaseBrake();
-            ApplyMotorTorque(moveInput * motorForce);
+            ApplyMotorTorque(moveInput * wheelSettings.motorForce);
         }
     }
 
@@ -109,12 +140,12 @@ public class PlayerController : MonoBehaviour
         if (handbrakeInput > 0 || aButtonPressed)
         {
             // 뒷바퀴에만 강한 브레이크를 걸어 잠급니다.
-            rearLeftWheel.brakeTorque = brakeForce * 2f;
-            rearRightWheel.brakeTorque = brakeForce * 2f;
+            rearLeftWheel.brakeTorque = wheelSettings.brakeForce * 2f;
+            rearRightWheel.brakeTorque = wheelSettings.brakeForce * 2f;
 
             // 뒷바퀴의 측면 마찰력을 줄여 드리프트를 유도합니다.
             var friction = rearLeftWheel.sidewaysFriction;
-            friction.stiffness = handbrakeFrictionStiffness;
+            friction.stiffness = wheelSettings.handbrakeFrictionStiffness;
             rearLeftWheel.sidewaysFriction = friction;
             rearRightWheel.sidewaysFriction = friction;
         }
@@ -135,10 +166,10 @@ public class PlayerController : MonoBehaviour
 
     private void ApplyBrake()
     {
-        frontLeftWheel.brakeTorque = brakeForce;
-        frontRightWheel.brakeTorque = brakeForce;
-        rearLeftWheel.brakeTorque = brakeForce;
-        rearRightWheel.brakeTorque = brakeForce;
+        frontLeftWheel.brakeTorque = wheelSettings.brakeForce;
+        frontRightWheel.brakeTorque = wheelSettings.brakeForce;
+        rearLeftWheel.brakeTorque = wheelSettings.brakeForce;
+        rearRightWheel.brakeTorque = wheelSettings.brakeForce;
     }
 
     private void ReleaseBrake()
@@ -151,7 +182,7 @@ public class PlayerController : MonoBehaviour
 
     private void HandleSteering()
     {
-        float currentSteerAngle = maxSteerAngle * steerInput;
+        float currentSteerAngle = wheelSettings.maxSteerAngle * steerInput;
         frontLeftWheel.steerAngle = currentSteerAngle;
         frontRightWheel.steerAngle = currentSteerAngle;
     }
@@ -174,5 +205,13 @@ public class PlayerController : MonoBehaviour
 
         wheelTransform.position = pos;
         wheelTransform.rotation = rot * Quaternion.Euler(0, 0, -90); // 휠 모델의 로컬 축 방향에 따라 정확한 회전 값은 달라질 수 있습니다.
+    }
+
+    private void ApplySpeedLimit()
+    {
+        if (rb.linearVelocity.magnitude > wheelSettings.maxSpeed)
+        {
+            rb.linearVelocity = rb.linearVelocity.normalized * wheelSettings.maxSpeed;
+        }
     }
 }
