@@ -138,6 +138,7 @@ public class EnemyAI : MonoBehaviour
                 {
                     currentState = EnemyState.Detecting;
                     Debug.Log("Enemy: Player spotted, beginning detection...");
+                    lastKnownPlayerPosition = target.position;
                 }
                 else
                 {
@@ -149,6 +150,7 @@ public class EnemyAI : MonoBehaviour
             case EnemyState.Detecting:
                 if (playerInFOV)
                 {
+                    lastKnownPlayerPosition = target.position;
                     // Increase detection progress
                     detectionProgress = Mathf.Min(1, detectionProgress + (1 / detectionDuration) * Time.deltaTime);
 
@@ -179,9 +181,7 @@ public class EnemyAI : MonoBehaviour
                     if (agent.isOnNavMesh) agent.SetDestination(target.position);
 
                     // Smoothly rotate to face the player
-                    Vector3 direction = (target.position - transform.position).normalized;
-                    Quaternion lookRotation = Quaternion.LookRotation(new Vector3(direction.x, 0, direction.z));
-                    transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime * rotationSpeed);
+                    RotateTowardsPosition(target.position);
                 }
                 else // 'neverStopChasing'가 아니고, 플레이어가 시야에 없을 때만 기존 로직 실행
                 {
@@ -190,15 +190,22 @@ public class EnemyAI : MonoBehaviour
                     {
                         // 시야를 놓쳤지만 아직 추적 유예 시간일 때
                         if (agent.isOnNavMesh) agent.SetDestination(lastKnownPlayerPosition);
+                        RotateTowardsPosition(lastKnownPlayerPosition);
                     }
                     else
                     {
                         // 추적 실패, Idle 상태로 복귀
                         currentState = EnemyState.Idle;
+                        if (agent.isOnNavMesh) agent.ResetPath();
                         Debug.Log("Enemy: Lost player, returning to idle.");
                     }
                 }
                 break;
+        }
+
+        if (!playerInFOV && currentState != EnemyState.Chasing)
+        {
+            TryRotateTowardPlayerWhenNearby();
         }
     }
 
@@ -233,47 +240,78 @@ public class EnemyAI : MonoBehaviour
         DrawFOVMesh(detectionFovMesh, currentDetectionRadius);
     }
 
-        private void DrawFOVMesh(Mesh mesh, float radius)
+    private void DrawFOVMesh(Mesh mesh, float radius)
+    {
+        if (radius <= 0)
         {
-            if (radius <= 0)
-            {
-                mesh.Clear();
-                return;
-            }
-    
-            int segments = 20;
-            int vertexCount = segments + 2;
-            Vector3[] vertices = new Vector3[vertexCount];
-            int[] triangles = new int[segments * 3];
-    
-            float yOffset = 0.1f; // Z-파이팅 방지를 위한 수직 오프셋
-            Vector3 verticalOffset = Vector3.up * yOffset;
-    
-            vertices[0] = verticalOffset;
-    
-            float angleIncrement = viewAngle / segments;
-            float currentAngle = -viewAngle / 2;
-    
-            for (int i = 0; i <= segments; i++)
-            {
-                Vector3 direction = Quaternion.Euler(0, currentAngle, 0) * Vector3.forward;
-                vertices[i + 1] = direction * radius + verticalOffset;
-                currentAngle += angleIncrement;
-            }
-    
-            for (int i = 0; i < segments; i++)
-            {
-                int triangleIndex = i * 3;
-                triangles[triangleIndex] = 0;
-                triangles[triangleIndex + 1] = i + 1;
-                triangles[triangleIndex + 2] = i + 2;
-            }
-    
             mesh.Clear();
-            mesh.vertices = vertices;
-            mesh.triangles = triangles;
-            mesh.RecalculateNormals();
+            return;
         }
+
+        int segments = 20;
+        int vertexCount = segments + 2;
+        Vector3[] vertices = new Vector3[vertexCount];
+        int[] triangles = new int[segments * 3];
+
+        float yOffset = 0.1f; // Z-파이팅 방지를 위한 수직 오프셋
+        Vector3 verticalOffset = Vector3.up * yOffset;
+
+        vertices[0] = verticalOffset;
+
+        float angleIncrement = viewAngle / segments;
+        float currentAngle = -viewAngle / 2;
+
+        for (int i = 0; i <= segments; i++)
+        {
+            Vector3 direction = Quaternion.Euler(0, currentAngle, 0) * Vector3.forward;
+            vertices[i + 1] = direction * radius + verticalOffset;
+            currentAngle += angleIncrement;
+        }
+
+        for (int i = 0; i < segments; i++)
+        {
+            int triangleIndex = i * 3;
+            triangles[triangleIndex] = 0;
+            triangles[triangleIndex + 1] = i + 1;
+            triangles[triangleIndex + 2] = i + 2;
+        }
+
+        mesh.Clear();
+        mesh.vertices = vertices;
+        mesh.triangles = triangles;
+        mesh.RecalculateNormals();
+    }
+
+    private void RotateTowardsPosition(Vector3 worldPosition)
+    {
+        Vector3 flatDirection = worldPosition - transform.position;
+        flatDirection.y = 0f;
+
+        if (flatDirection.sqrMagnitude < 0.0001f)
+        {
+            return;
+        }
+
+        Quaternion lookRotation = Quaternion.LookRotation(flatDirection);
+        transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, rotationSpeed * Time.deltaTime);
+    }
+
+    private void TryRotateTowardPlayerWhenNearby()
+    {
+        if (target == null)
+        {
+            return;
+        }
+
+        float distanceToTarget = Vector3.Distance(transform.position, target.position);
+        if (distanceToTarget > viewRadius)
+        {
+            return;
+        }
+
+        RotateTowardsPosition(target.position);
+    }
+
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.yellow;
