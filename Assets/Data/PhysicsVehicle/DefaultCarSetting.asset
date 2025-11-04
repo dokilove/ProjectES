@@ -13,8 +13,11 @@ MonoBehaviour:
   m_Name: DefaultCarSetting
   m_EditorClassIdentifier: Assembly-CSharp::WheelSettingsSO
   motorForce: 1500
-  maxSteerAngle: 70
+  maxSteerAngle: 91
   brakeForce: 3000
   maxSpeed: 50
   handbrakeFrictionStiffness: 0.4
-  defaultSidewaysFrictionStiffness: 1.5
+  frontSidewaysFrictionStiffness: 1.3
+  rearSidewaysFrictionStiffness: 0.9
+  rearSteeringFrictionStiffness: 0.6
+  steerHelperStrength: 0.585
