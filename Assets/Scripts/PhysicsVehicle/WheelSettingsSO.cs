@@ -9,6 +9,10 @@ public class WheelSettingsSO : ScriptableObject
     public float brakeForce = 3000f; // Brake torque applied to all wheels
     public float maxSpeed = 50f; // Maximum speed of the vehicle
 
+    [Header("Stability Control")]
+    public float downforce = 100f; // Downforce to increase grip at high speeds
+    public float antiRollForce = 5000f; // Force to prevent rolling over
+
     [Header("Friction Settings")]
     public float handbrakeFrictionStiffness = 0.4f; // Stiffness for drifting
     public float defaultSidewaysFrictionStiffness = 1.0f; // Default sideways friction stiffness for normal driving

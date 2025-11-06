@@ -779,7 +779,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GoalManager
   player: {fileID: 1046024972}
   spawnArea: {fileID: 908801189}
-  cityGenerator: {fileID: 955890794}
+  cityGenerator: {fileID: 0}
   goalRadius: 5
   minDwellTime: 2
   maxDwellTime: 5
@@ -801,6 +801,132 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &554888861
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 554888863}
+  - component: {fileID: 554888862}
+  - component: {fileID: 554888864}
+  m_Layer: 0
+  m_Name: CityGenerator
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &554888862
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 554888861}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7a14b4721d2c84cad81b741c94036f8b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  citySizeX: 20
+  citySizeZ: 20
+  blockSize: 25
+  roadInterval: 4
+  minBuildingHeight: 10
+  maxBuildingHeight: 40
+  buildingMaterial: {fileID: 0}
+  generateHillyTerrain: 1
+  terrainHeight: 10
+  terrainScale: 20
+  marginSize: 5
+  groundMaterial: {fileID: 2100000, guid: 73f5178d0d05ed548908de0ff0eddfd4, type: 2}
+  groundPhysicMaterial: {fileID: 13400000, guid: 955b9c1753d367346832159992d541a5, type: 2}
+  terrainLayerName: Ground
+  roadSmoothingIterations: 2
+  octaves: 7
+  lacunarity: 2
+  persistence: 0.292
+  groundColorGradient:
+    serializedVersion: 2
+    key0: {r: 0.6367924, g: 0.34843358, b: 0.35736135, a: 1}
+    key1: {r: 0.3033663, g: 1, b: 0.25, a: 1}
+    key2: {r: 0, g: 0, b: 0, a: 0}
+    key3: {r: 0, g: 0, b: 0, a: 0}
+    key4: {r: 0, g: 0, b: 0, a: 0}
+    key5: {r: 0, g: 0, b: 0, a: 0}
+    key6: {r: 0, g: 0, b: 0, a: 0}
+    key7: {r: 0, g: 0, b: 0, a: 0}
+    ctime0: 0
+    ctime1: 65150
+    ctime2: 0
+    ctime3: 0
+    ctime4: 0
+    ctime5: 0
+    ctime6: 0
+    ctime7: 0
+    atime0: 0
+    atime1: 65535
+    atime2: 0
+    atime3: 0
+    atime4: 0
+    atime5: 0
+    atime6: 0
+    atime7: 0
+    m_Mode: 0
+    m_ColorSpace: -1
+    m_NumColorKeys: 2
+    m_NumAlphaKeys: 2
+  navMeshSurface: {fileID: 554888864}
+--- !u!4 &554888863
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 554888861}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &554888864
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 554888861}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7a5ac11cc976e418e8d13136b07e1f52, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.AI.Navigation::Unity.AI.Navigation.NavMeshSurface
+  m_SerializedVersion: 0
+  m_AgentTypeID: 0
+  m_CollectObjects: 0
+  m_Size: {x: 10, y: 10, z: 10}
+  m_Center: {x: 0, y: 2, z: 0}
+  m_LayerMask:
+    serializedVersion: 2
+    m_Bits: 1015
+  m_UseGeometry: 0
+  m_DefaultArea: 0
+  m_GenerateLinks: 0
+  m_IgnoreNavMeshAgent: 1
+  m_IgnoreNavMeshObstacle: 1
+  m_OverrideTileSize: 0
+  m_TileSize: 256
+  m_OverrideVoxelSize: 0
+  m_VoxelSize: 0.16666667
+  m_MinRegionArea: 2
+  m_NavMeshData: {fileID: 0}
+  m_BuildHeightMesh: 0
 --- !u!1 &566144374
 GameObject:
   m_ObjectHideFlags: 0
@@ -1002,64 +1128,6 @@ Transform:
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 100, y: 1, z: 100}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &955890793
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 955890795}
-  - component: {fileID: 955890794}
-  m_Layer: 0
-  m_Name: CityGenerator
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &955890794
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 955890793}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7a14b4721d2c84cad81b741c94036f8b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: '::'
-  citySizeX: 20
-  citySizeZ: 20
-  blockSize: 25
-  roadInterval: 4
-  minBuildingHeight: 10
-  maxBuildingHeight: 40
-  buildingMaterial: {fileID: 0}
-  generateHillyTerrain: 1
-  terrainHeight: 10
-  terrainScale: 20
-  marginSize: 5
-  groundMaterial: {fileID: 2100000, guid: 0d736418d939e0d4693cc7b931893de0, type: 2}
-  terrainLayerName: Ground
-  navMeshSurface: {fileID: 2142942450}
---- !u!4 &955890795
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 955890793}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -1723,6 +1791,6 @@ SceneRoots:
   - {fileID: 566144378}
   - {fileID: 512807649}
   - {fileID: 908801190}
-  - {fileID: 955890795}
   - {fileID: 1881826682}
   - {fileID: 441866479}
+  - {fileID: 554888863}

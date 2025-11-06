@@ -552,64 +552,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &975981313
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 975981315}
-  - component: {fileID: 975981314}
-  m_Layer: 0
-  m_Name: CityGenerator
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &975981314
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 975981313}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7a14b4721d2c84cad81b741c94036f8b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CityGenerator
-  citySizeX: 20
-  citySizeZ: 20
-  blockSize: 25
-  roadInterval: 4
-  minBuildingHeight: 10
-  maxBuildingHeight: 40
-  buildingMaterial: {fileID: 2100000, guid: 902eda84c76ba264995b31ff4b13125c, type: 2}
-  generateHillyTerrain: 1
-  terrainHeight: 10
-  terrainScale: 20
-  marginSize: 5
-  groundMaterial: {fileID: 2100000, guid: 0d736418d939e0d4693cc7b931893de0, type: 2}
-  terrainLayerName: Ground
-  navMeshSurface: {fileID: 1137481738}
---- !u!4 &975981315
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 975981313}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1137481733
 GameObject:
   m_ObjectHideFlags: 0
@@ -812,6 +754,132 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 9d2e587bf3d834c50ad6c716f901ed85, type: 3}
+--- !u!1 &1642540391
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1642540394}
+  - component: {fileID: 1642540393}
+  - component: {fileID: 1642540392}
+  m_Layer: 0
+  m_Name: CityGenerator
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1642540392
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1642540391}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7a5ac11cc976e418e8d13136b07e1f52, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.AI.Navigation::Unity.AI.Navigation.NavMeshSurface
+  m_SerializedVersion: 0
+  m_AgentTypeID: 0
+  m_CollectObjects: 0
+  m_Size: {x: 10, y: 10, z: 10}
+  m_Center: {x: 0, y: 2, z: 0}
+  m_LayerMask:
+    serializedVersion: 2
+    m_Bits: 1015
+  m_UseGeometry: 0
+  m_DefaultArea: 0
+  m_GenerateLinks: 0
+  m_IgnoreNavMeshAgent: 1
+  m_IgnoreNavMeshObstacle: 1
+  m_OverrideTileSize: 0
+  m_TileSize: 256
+  m_OverrideVoxelSize: 0
+  m_VoxelSize: 0.16666667
+  m_MinRegionArea: 2
+  m_NavMeshData: {fileID: 0}
+  m_BuildHeightMesh: 0
+--- !u!114 &1642540393
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1642540391}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7a14b4721d2c84cad81b741c94036f8b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  citySizeX: 20
+  citySizeZ: 20
+  blockSize: 25
+  roadInterval: 4
+  minBuildingHeight: 10
+  maxBuildingHeight: 40
+  buildingMaterial: {fileID: 0}
+  generateHillyTerrain: 1
+  terrainHeight: 10
+  terrainScale: 20
+  marginSize: 5
+  groundMaterial: {fileID: 2100000, guid: 73f5178d0d05ed548908de0ff0eddfd4, type: 2}
+  groundPhysicMaterial: {fileID: 13400000, guid: 955b9c1753d367346832159992d541a5, type: 2}
+  terrainLayerName: Ground
+  roadSmoothingIterations: 2
+  octaves: 7
+  lacunarity: 2
+  persistence: 0.292
+  groundColorGradient:
+    serializedVersion: 2
+    key0: {r: 0.6367924, g: 0.34843358, b: 0.35736135, a: 1}
+    key1: {r: 0.3033663, g: 1, b: 0.25, a: 1}
+    key2: {r: 0, g: 0, b: 0, a: 0}
+    key3: {r: 0, g: 0, b: 0, a: 0}
+    key4: {r: 0, g: 0, b: 0, a: 0}
+    key5: {r: 0, g: 0, b: 0, a: 0}
+    key6: {r: 0, g: 0, b: 0, a: 0}
+    key7: {r: 0, g: 0, b: 0, a: 0}
+    ctime0: 0
+    ctime1: 65150
+    ctime2: 0
+    ctime3: 0
+    ctime4: 0
+    ctime5: 0
+    ctime6: 0
+    ctime7: 0
+    atime0: 0
+    atime1: 65535
+    atime2: 0
+    atime3: 0
+    atime4: 0
+    atime5: 0
+    atime6: 0
+    atime7: 0
+    m_Mode: 0
+    m_ColorSpace: -1
+    m_NumColorKeys: 2
+    m_NumAlphaKeys: 2
+  navMeshSurface: {fileID: 1642540392}
+--- !u!4 &1642540394
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1642540391}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1988136678
 GameObject:
   m_ObjectHideFlags: 0
@@ -970,7 +1038,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GoalManager
   player: {fileID: 5431132470905025883, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
   spawnArea: {fileID: 972164712}
-  cityGenerator: {fileID: 975981314}
+  cityGenerator: {fileID: 0}
   goalRadius: 5
   minDwellTime: 2
   maxDwellTime: 5
@@ -1000,9 +1068,9 @@ SceneRoots:
   - {fileID: 1988136680}
   - {fileID: 1137481737}
   - {fileID: 309706356}
-  - {fileID: 975981315}
   - {fileID: 2013044655}
   - {fileID: 972164713}
   - {fileID: 767518588}
   - {fileID: 691518215}
   - {fileID: 1225338667}
+  - {fileID: 1642540394}

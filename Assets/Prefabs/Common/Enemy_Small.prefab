@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 7202072891557536186}
   - component: {fileID: 8331022627845506576}
   - component: {fileID: 8485258268578485126}
+  - component: {fileID: -7059779621611160890}
   m_Layer: 9
   m_Name: Enemy_Small
   m_TagString: Untagged
@@ -111,6 +112,26 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!114 &-7059779621611160890
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2861615370398177607}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e3fdca004f2d45fe8abbed571a8abd5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.AI.Navigation::Unity.AI.Navigation.NavMeshModifier
+  m_SerializedVersion: 0
+  m_OverrideArea: 1
+  m_Area: 1
+  m_OverrideGenerateLinks: 0
+  m_GenerateLinks: 0
+  m_IgnoreFromBuild: 0
+  m_ApplyToChildren: 1
+  m_AffectedAgents: ffffffff
 --- !u!1 &5115950873236807247
 GameObject:
   m_ObjectHideFlags: 0
@@ -122,7 +143,7 @@ GameObject:
   - component: {fileID: 8293073429802131039}
   - component: {fileID: 1907227079767018992}
   - component: {fileID: 4018612267509126285}
-  m_Layer: 9
+  m_Layer: 10
   m_Name: DetectionFOV
   m_TagString: Untagged
   m_Icon: {fileID: 0}

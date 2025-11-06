@@ -15,7 +15,7 @@ TagManager:
   - MinimapIcon
   - Ground
   - Enemy
-  - 
+  - NavMeshIgnore
   - 
   - 
   - 

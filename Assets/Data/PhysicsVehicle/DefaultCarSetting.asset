@@ -16,5 +16,7 @@ MonoBehaviour:
   maxSteerAngle: 60
   brakeForce: 3000
   maxSpeed: 50
+  downforce: 100
+  antiRollForce: 5000
   handbrakeFrictionStiffness: 0.4
-  defaultSidewaysFrictionStiffness: 1
+  defaultSidewaysFrictionStiffness: 6

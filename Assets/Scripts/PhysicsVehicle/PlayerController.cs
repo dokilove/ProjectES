@@ -116,6 +116,10 @@ public class PlayerController : MonoBehaviour
         HandleHandbrake();
         UpdateWheelPoses();
         ApplySpeedLimit();
+
+        // Stability control for better handling on slopes and corners
+        ApplyDownforce();
+        ApplyAntiRoll();
     }
 
     private void HandleMovement()
@@ -226,6 +230,49 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    private void ApplyDownforce()
+    {
+        // Apply a downward force to increase tire grip, proportional to the vehicle's speed.
+        // This helps prevent slipping on slopes and improves stability at high speeds.
+        rb.AddForce(-transform.up * wheelSettings.downforce * rb.linearVelocity.magnitude);
+    }
+
+    private void ApplyAntiRoll()
+    {
+        ApplyAntiRollToAxle(frontLeftWheel, frontRightWheel);
+        ApplyAntiRollToAxle(rearLeftWheel, rearRightWheel);
+    }
+
+    private void ApplyAntiRollToAxle(WheelCollider wheelL, WheelCollider wheelR)
+    {
+        WheelHit hit;
+        float travelL = 1.0f;
+        float travelR = 1.0f;
+
+        bool groundedL = wheelL.GetGroundHit(out hit);
+        if (groundedL)
+        {
+            travelL = (-wheelL.transform.InverseTransformPoint(hit.point).y - wheelL.radius) / wheelL.suspensionDistance;
+        }
+
+        bool groundedR = wheelR.GetGroundHit(out hit);
+        if (groundedR)
+        {
+            travelR = (-wheelR.transform.InverseTransformPoint(hit.point).y - wheelR.radius) / wheelR.suspensionDistance;
+        }
+
+        float antiRollForce = (travelL - travelR) * wheelSettings.antiRollForce;
+
+        if (groundedL)
+        {
+            rb.AddForceAtPosition(wheelL.transform.up * -antiRollForce, wheelL.transform.position);
+        }
+        if (groundedR)
+        {
+            rb.AddForceAtPosition(wheelR.transform.up * antiRollForce, wheelR.transform.position);
+        }
+    }
+
     private void PlaceOnGround()
     {
         // Start the ray from high above the vehicle's current position
@@ -254,6 +301,15 @@ public class PlayerController : MonoBehaviour
         else
         {
             Debug.LogWarning($"PlaceOnGround: Could not find ground beneath player '{gameObject.name}'. Check ground layer and distance.", this);
+        }
+    }
+
+    void OnDrawGizmos()
+    {
+        if (rb != null)
+        {
+            Gizmos.color = Color.red;
+            Gizmos.DrawSphere(rb.worldCenterOfMass, 0.1f); // Visualize CoM
         }
     }
 }
