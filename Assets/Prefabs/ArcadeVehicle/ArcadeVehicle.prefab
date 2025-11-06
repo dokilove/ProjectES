@@ -284,7 +284,7 @@ MonoBehaviour:
   rotationSpeed: 15
   groundLayer:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 256
   groundCheckDistance: 50
   extraGravityForce: 20
 --- !u!1 &4474176758227904615

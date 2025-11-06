@@ -652,15 +652,15 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 2442417905205768092, guid: c23654af639fb9246ba8869e810f0cb0, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -14.6
+      value: 80
       objectReference: {fileID: 0}
     - target: {fileID: 2442417905205768092, guid: c23654af639fb9246ba8869e810f0cb0, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 2442417905205768092, guid: c23654af639fb9246ba8869e810f0cb0, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -19.2
+      value: 66.899994
       objectReference: {fileID: 0}
     - target: {fileID: 2442417905205768092, guid: c23654af639fb9246ba8869e810f0cb0, type: 3}
       propertyPath: m_LocalRotation.w
@@ -1042,6 +1042,12 @@ MonoBehaviour:
   minBuildingHeight: 10
   maxBuildingHeight: 40
   buildingMaterial: {fileID: 0}
+  generateHillyTerrain: 1
+  terrainHeight: 10
+  terrainScale: 20
+  marginSize: 5
+  groundMaterial: {fileID: 2100000, guid: 0d736418d939e0d4693cc7b931893de0, type: 2}
+  terrainLayerName: Ground
   navMeshSurface: {fileID: 2142942450}
 --- !u!4 &955890795
 Transform:
@@ -1233,15 +1239,15 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 2442417905205768092, guid: c23654af639fb9246ba8869e810f0cb0, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 14.4
+      value: 109
       objectReference: {fileID: 0}
     - target: {fileID: 2442417905205768092, guid: c23654af639fb9246ba8869e810f0cb0, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 2442417905205768092, guid: c23654af639fb9246ba8869e810f0cb0, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -18.1
+      value: 68
       objectReference: {fileID: 0}
     - target: {fileID: 2442417905205768092, guid: c23654af639fb9246ba8869e810f0cb0, type: 3}
       propertyPath: m_LocalRotation.w
@@ -1442,7 +1448,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!64 &2142942446
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -1614,15 +1620,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5431132470905025883, guid: 7e33be823a8f53245810d0ee7d0e7b4e, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0
+      value: 94.6
       objectReference: {fileID: 0}
     - target: {fileID: 5431132470905025883, guid: 7e33be823a8f53245810d0ee7d0e7b4e, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 1
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 5431132470905025883, guid: 7e33be823a8f53245810d0ee7d0e7b4e, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0
+      value: 86.1
       objectReference: {fileID: 0}
     - target: {fileID: 5431132470905025883, guid: 7e33be823a8f53245810d0ee7d0e7b4e, type: 3}
       propertyPath: m_LocalRotation.w

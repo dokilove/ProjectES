@@ -22,6 +22,10 @@ public class PlayerController : MonoBehaviour
     [Header("Dependencies")]
     [SerializeField] private SpringArmCamera springArmCamera; // 카메라 리셋을 위해 참조
 
+    [Header("Spawning")]
+    [Tooltip("The layer mask for the ground, used for placing the vehicle correctly on the terrain.")]
+    public LayerMask groundLayer;
+
     // Input System Actions
     private InputSystem_Actions playerInputActions;
     private float steerInput;
@@ -73,6 +77,11 @@ public class PlayerController : MonoBehaviour
         SetSidewaysFrictionStiffness(rearRightWheel, wheelSettings.defaultSidewaysFrictionStiffness);
     }
 
+    private void Start()
+    {
+        // Initialization is now handled by the OnCityGenerated event
+    }
+
     private void SetSidewaysFrictionStiffness(WheelCollider wheel, float stiffness)
     {
         var friction = wheel.sidewaysFriction;
@@ -91,11 +100,13 @@ public class PlayerController : MonoBehaviour
     private void OnEnable()
     {
         playerInputActions.Driver.Enable();
+        CityGenerator.OnCityGenerated += PlaceOnGround;
     }
 
     private void OnDisable()
     {
         playerInputActions.Driver.Disable();
+        CityGenerator.OnCityGenerated -= PlaceOnGround;
     }
 
     private void FixedUpdate()
@@ -132,7 +143,7 @@ public class PlayerController : MonoBehaviour
     {
         bool aButtonPressed = false;
         if (Gamepad.current != null)
-        {
+        { 
             aButtonPressed = Gamepad.current.buttonSouth.isPressed;
         }
 
@@ -212,6 +223,37 @@ public class PlayerController : MonoBehaviour
         if (rb.linearVelocity.magnitude > wheelSettings.maxSpeed)
         {
             rb.linearVelocity = rb.linearVelocity.normalized * wheelSettings.maxSpeed;
+        }
+    }
+
+    private void PlaceOnGround()
+    {
+        // Start the ray from high above the vehicle's current position
+        Vector3 rayStart = new Vector3(transform.position.x, 1000f, transform.position.z);
+
+        if (Physics.Raycast(rayStart, Vector3.down, out RaycastHit hit, 2000f, groundLayer))
+        {
+            // We need the vehicle's height to position it correctly.
+            // Using the collider's bounds is a reliable way to do this.
+            var vehicleCollider = GetComponent<Collider>();
+            if (vehicleCollider != null)
+            {
+                // The pivot of the vehicle might not be at its base.
+                // We use 'bounds.extents.y' which is half the collider's height.
+                // This positions the vehicle so its bottom touches the ground.
+                float heightOffset = vehicleCollider.bounds.extents.y;
+                transform.position = new Vector3(transform.position.x, hit.point.y + heightOffset, transform.position.z);
+            }
+            else
+            {
+                // Fallback if there's no collider, just place it slightly above the ground.
+                transform.position = new Vector3(transform.position.x, hit.point.y + 0.5f, transform.position.z);
+            }
+            Debug.Log($"Player '{gameObject.name}' placed on ground at {transform.position}", this);
+        }
+        else
+        {
+            Debug.LogWarning($"PlaceOnGround: Could not find ground beneath player '{gameObject.name}'. Check ground layer and distance.", this);
         }
     }
 }

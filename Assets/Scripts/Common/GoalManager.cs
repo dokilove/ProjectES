@@ -63,7 +63,17 @@ public class GoalManager : MonoBehaviour
         UnityEngine.Random.InitState((int)System.DateTime.Now.Ticks);
     }
 
-    void Start()
+    void OnEnable()
+    {
+        CityGenerator.OnCityGenerated += Initialize;
+    }
+
+    void OnDisable()
+    {
+        CityGenerator.OnCityGenerated -= Initialize;
+    }
+
+    void Initialize()
     {
         if (player == null || spawnArea == null)
         {
@@ -78,6 +88,11 @@ public class GoalManager : MonoBehaviour
         }
 
         SpawnInitialGoals();
+    }
+
+    void Start()
+    {
+        // Initialization is now handled by the OnCityGenerated event
     }
 
     void Update()
@@ -158,35 +173,39 @@ public class GoalManager : MonoBehaviour
 
         for (int i = 0; i < maxSpawnAttempts; i++)
         {
-            Vector3 potentialPosition;
+            Vector3 potentialPositionXZ;
             if (roadPositions.Count > 0)
             {
-                potentialPosition = roadPositions[UnityEngine.Random.Range(0, roadPositions.Count)];
+                potentialPositionXZ = roadPositions[UnityEngine.Random.Range(0, roadPositions.Count)];
             }
             else
             {
                 Bounds bounds = spawnArea.bounds;
-                potentialPosition = new Vector3(
+                potentialPositionXZ = new Vector3(
                     UnityEngine.Random.Range(bounds.min.x, bounds.max.x),
-                    spawnArea.transform.position.y,
+                    0, // Y is irrelevant for the initial position finding
                     UnityEngine.Random.Range(bounds.min.z, bounds.max.z)
                 );
             }
 
-            if (Vector3.Distance(player.position, potentialPosition) < minSpawnDistanceFromPlayer)
+            if (Vector3.Distance(new Vector3(player.position.x, 0, player.position.z), potentialPositionXZ) < minSpawnDistanceFromPlayer)
             {
                 continue;
             }
 
-            bool tooCloseToAnotherGoal = activeGoals.Any(g => Vector3.Distance(g.position, potentialPosition) < minSpawnDistanceFromOtherGoals);
+            bool tooCloseToAnotherGoal = activeGoals.Any(g => Vector3.Distance(new Vector3(g.position.x, 0, g.position.z), potentialPositionXZ) < minSpawnDistanceFromOtherGoals);
             if (tooCloseToAnotherGoal)
             {
                 continue;
             }
 
-            goalPosition = potentialPosition;
-            positionFound = true;
-            break;
+            // Raycast down to find the actual ground height
+            if (Physics.Raycast(new Vector3(potentialPositionXZ.x, 1000f, potentialPositionXZ.z), Vector3.down, out RaycastHit hit, 2000f))
+            {
+                goalPosition = hit.point;
+                positionFound = true;
+                break;
+            }
         }
 
         if (!positionFound)
@@ -203,7 +222,7 @@ public class GoalManager : MonoBehaviour
         collider.radius = goalRadius;
 
         goalMarker.transform.localScale = new Vector3(goalRadius * 2, 0.1f, goalRadius * 2);
-        goalMarker.transform.position = goalPosition;
+        goalMarker.transform.position = goalPosition + Vector3.up * 0.05f; // Place slightly above ground to prevent z-fighting
         goalMarker.GetComponent<Renderer>().material.color = Color.red;
 
         Goal newGoal = new Goal
@@ -233,6 +252,8 @@ public class GoalManager : MonoBehaviour
     void PopulateRoadPositions()
     {
         roadPositions.Clear();
+        if (cityGenerator == null) return;
+
         for (int x = 0; x < cityGenerator.citySizeX; x++)
         {
             for (int z = 0; z < cityGenerator.citySizeZ; z++)
@@ -241,7 +262,12 @@ public class GoalManager : MonoBehaviour
                 {
                     float xPos = x * cityGenerator.blockSize;
                     float zPos = z * cityGenerator.blockSize;
-                    roadPositions.Add(new Vector3(xPos, spawnArea.transform.position.y, zPos));
+                    
+                    // Raycast down to find the actual ground height for the road position
+                    if (Physics.Raycast(new Vector3(xPos, 1000f, zPos), Vector3.down, out RaycastHit hit, 2000f))
+                    {
+                        roadPositions.Add(hit.point);
+                    }
                 }
             }
         }

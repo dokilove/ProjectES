@@ -25,6 +25,10 @@ public class EnemyAI : MonoBehaviour
     [Tooltip("한 번 추적을 시작하면 절대 멈추지 않을지 여부입니다.")]
     public bool neverStopChasing = false;
 
+    [Header("Spawning")]
+    [Tooltip("The layer mask for the ground, used for placing the enemy correctly on the terrain.")]
+    public LayerMask groundLayer;
+
     private NavMeshAgent agent;
 
     // Base FOV
@@ -42,6 +46,16 @@ public class EnemyAI : MonoBehaviour
     private Vector3 lastKnownPlayerPosition;
     public float chaseDurationAfterLostSight = 3f;
     private float chaseTimer;
+
+    void OnEnable()
+    {
+        CityGenerator.OnCityGenerated += PlaceOnGround;
+    }
+
+    void OnDisable()
+    {
+        CityGenerator.OnCityGenerated -= PlaceOnGround;
+    }
 
     void Start()
     {
@@ -253,18 +267,36 @@ public class EnemyAI : MonoBehaviour
         Vector3[] vertices = new Vector3[vertexCount];
         int[] triangles = new int[segments * 3];
 
-        float yOffset = 0.1f; // Z-파이팅 방지를 위한 수직 오프셋
-        Vector3 verticalOffset = Vector3.up * yOffset;
-
-        vertices[0] = verticalOffset;
+        // Project the center vertex of the FOV fan onto the ground.
+        Vector3 centerVertex = Vector3.zero;
+        if (Physics.Raycast(transform.position + Vector3.up, Vector3.down, out RaycastHit centerHit, 10f, groundLayer))
+        {
+            centerVertex = transform.InverseTransformPoint(centerHit.point + Vector3.up * 0.1f);
+        }
+        else
+        {
+            // Fallback if no ground is found directly below
+            centerVertex = Vector3.up * 0.1f;
+        }
+        vertices[0] = centerVertex;
 
         float angleIncrement = viewAngle / segments;
         float currentAngle = -viewAngle / 2;
 
         for (int i = 0; i <= segments; i++)
         {
-            Vector3 direction = Quaternion.Euler(0, currentAngle, 0) * Vector3.forward;
-            vertices[i + 1] = direction * radius + verticalOffset;
+            Vector3 direction = Quaternion.Euler(0, currentAngle, 0) * transform.forward;
+            Vector3 worldPoint = transform.position + direction * radius;
+
+            if (Physics.Raycast(worldPoint + Vector3.up * 5f, Vector3.down, out RaycastHit hit, 10f, groundLayer))
+            {
+                vertices[i + 1] = transform.InverseTransformPoint(hit.point + Vector3.up * 0.1f);
+            }
+            else
+            {
+                // If raycast fails, use a point relative to the center vertex
+                vertices[i + 1] = centerVertex + transform.InverseTransformDirection(direction * radius);
+            }
             currentAngle += angleIncrement;
         }
 
@@ -336,6 +368,32 @@ public class EnemyAI : MonoBehaviour
         if (collision.gameObject.CompareTag("Player"))
         {
             GoalManager.Instance.TriggerGameOver();
+        }
+    }
+
+    private void PlaceOnGround()
+    {
+        // Start the ray from high above the enemy's current position
+        Vector3 rayStart = new Vector3(transform.position.x, 1000f, transform.position.z);
+
+        if (Physics.Raycast(rayStart, Vector3.down, out RaycastHit hit, 2000f, groundLayer))
+        {
+            // Position the enemy on the ground at the hit point.
+            // We also need to account for the NavMeshAgent's base offset if any.
+            NavMeshAgent agent = GetComponent<NavMeshAgent>();
+            if (agent != null)
+            {
+                transform.position = hit.point + Vector3.up * agent.baseOffset;
+            }
+            else
+            {
+                transform.position = hit.point;
+            }
+            Debug.Log($"Enemy '{gameObject.name}' placed on ground at {transform.position}", this);
+        }
+        else
+        {
+            Debug.LogWarning($"PlaceOnGround: Could not find ground beneath enemy '{gameObject.name}'. Check ground layer and distance.", this);
         }
     }
 }

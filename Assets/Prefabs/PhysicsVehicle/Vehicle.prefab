@@ -506,6 +506,9 @@ MonoBehaviour:
   rearRightTransform: {fileID: 4461188366330670704}
   wheelSettings: {fileID: 11400000, guid: 6b99534ccfea3d04bafaf2e4015bd59e, type: 2}
   springArmCamera: {fileID: 0}
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 256
 --- !u!1 &4474176758227904615
 GameObject:
   m_ObjectHideFlags: 0

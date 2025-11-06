@@ -80,6 +80,9 @@ MonoBehaviour:
   detectionDuration: 0.2
   rotationSpeed: 10
   neverStopChasing: 0
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 256
   chaseDurationAfterLostSight: 3
 --- !u!54 &8485258268578485126
 Rigidbody:

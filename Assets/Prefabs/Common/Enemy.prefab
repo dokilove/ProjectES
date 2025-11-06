@@ -78,6 +78,11 @@ MonoBehaviour:
   baseFovMaterial: {fileID: 2100000, guid: ecde4d41658743642bb67b68aac4d65b, type: 2}
   detectionFovMeshFilter: {fileID: 1907227079767018992}
   detectionDuration: 1.5
+  rotationSpeed: 10
+  neverStopChasing: 0
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 256
   chaseDurationAfterLostSight: 3
 --- !u!54 &8485258268578485126
 Rigidbody:

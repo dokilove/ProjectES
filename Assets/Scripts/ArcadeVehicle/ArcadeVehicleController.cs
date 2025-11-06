@@ -38,17 +38,19 @@ public class ArcadeVehicleController : MonoBehaviour
     private void Start()
     {
         // Position the vehicle on the ground when the game starts.
-        PlaceOnGround();
+        // PlaceOnGround(); // This is now handled by the OnCityGenerated event
     }
 
     private void OnEnable()
     {
         playerActions.Player.Enable();
+        CityGenerator.OnCityGenerated += PlaceOnGround;
     }
 
     private void OnDisable()
     {
         playerActions.Player.Disable();
+        CityGenerator.OnCityGenerated -= PlaceOnGround;
     }
 
     private void Update()
