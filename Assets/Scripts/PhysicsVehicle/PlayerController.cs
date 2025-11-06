@@ -160,8 +160,8 @@ public class PlayerController : MonoBehaviour
 
     private void ApplyMotorTorque(float torque)
     {
-        rearLeftWheel.motorTorque = torque;
-        rearRightWheel.motorTorque = torque;
+        frontLeftWheel.motorTorque = torque;
+        frontRightWheel.motorTorque = torque;
     }
 
     private void ApplyBrake()
