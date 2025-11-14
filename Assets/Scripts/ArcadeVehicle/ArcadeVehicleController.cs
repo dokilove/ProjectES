@@ -6,8 +6,6 @@ public class ArcadeVehicleController : MonoBehaviour
 {
     [Header("Movement")]
     [SerializeField] private float maxSpeed = 15f;
-    [SerializeField] private float acceleration = 5f; // Adjusted for Lerp
-    [SerializeField] private float deceleration = 25f;
     [SerializeField] private float rotationSpeed = 15f;
 
     [Header("Grounding")]
@@ -19,11 +17,14 @@ public class ArcadeVehicleController : MonoBehaviour
     [Header("Gravity")]
     [Tooltip("Extra gravity force to apply, making the vehicle fall faster. Acts as an acceleration.")]
     [SerializeField] private float extraGravityForce = 20f;
+    [Tooltip("How far down to check for ground to apply snapping force.")]
+    [SerializeField] private float groundSnapDistance = 1.5f;
+    [Tooltip("How strongly to push the vehicle down to stick to slopes.")]
+    [SerializeField] private float groundSnapForce = 60f;
 
     private Rigidbody rb;
     private InputSystem_Actions playerActions;
     private Vector2 moveInput;
-    private float currentSpeed;
     private Vector3 moveDirection;
 
     private void Awake()
@@ -32,7 +33,8 @@ public class ArcadeVehicleController : MonoBehaviour
         playerActions = new InputSystem_Actions();
 
         // We only freeze rotation, allowing the Rigidbody to be affected by gravity on the Y-axis.
-        rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
+        // We only freeze rotation, allowing the Rigidbody to be affected by gravity on the Y-axis.
+    // rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
     }
 
     private void Start()
@@ -66,6 +68,7 @@ public class ArcadeVehicleController : MonoBehaviour
 
         // Apply physics-based movement in FixedUpdate.
         HandleMovement();
+        HandleGroundSnapping();
     }
 
     /// <summary>
@@ -121,21 +124,11 @@ public class ArcadeVehicleController : MonoBehaviour
         if (moveInput.sqrMagnitude > 0.1f)
         {
             moveDirection = currentMoveVector.normalized;
-            currentSpeed = Mathf.Lerp(currentSpeed, maxSpeed, acceleration * Time.fixedDeltaTime);
+            rb.linearVelocity = moveDirection * maxSpeed;
         }
         else
         {
-            currentSpeed = Mathf.MoveTowards(currentSpeed, 0f, deceleration * Time.fixedDeltaTime);
-        }
-
-        // Apply velocity using the stored direction
-        rb.linearVelocity = moveDirection * currentSpeed;
-
-        // Ensure the vehicle comes to a complete stop
-        if (currentSpeed < 0.01f)
-        {
             rb.linearVelocity = Vector3.zero;
-            currentSpeed = 0f;
         }
 
         // If there is movement input, smoothly rotate the vehicle to face the direction of movement.
@@ -143,6 +136,20 @@ public class ArcadeVehicleController : MonoBehaviour
         {
             Quaternion targetRotation = Quaternion.LookRotation(currentMoveVector);
             rb.rotation = Quaternion.Slerp(rb.rotation, targetRotation, rotationSpeed * Time.fixedDeltaTime);
+        }
+    }
+
+    private void HandleGroundSnapping()
+    {
+        // Raycast downwards to find the ground
+        if (Physics.Raycast(transform.position, Vector3.down, groundSnapDistance, groundLayer))
+        {
+            // Apply a downward force to stick to the ground, but only if we are not trying to go up.
+            // This prevents the snap from interfering with jumps over ramps.
+            if (rb.linearVelocity.y <= 0)
+            {
+                rb.AddForce(Vector3.down * groundSnapForce, ForceMode.Acceleration);
+            }
         }
     }
 }

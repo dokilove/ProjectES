@@ -127,45 +127,9 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 733014464613078294, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
-      propertyPath: m_Layer
-      value: 6
-      objectReference: {fileID: 0}
-    - target: {fileID: 1261335235741250508, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
-      propertyPath: m_Layer
-      value: 6
-      objectReference: {fileID: 0}
-    - target: {fileID: 2063525946721105342, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
-      propertyPath: maxSpeed
-      value: 30
-      objectReference: {fileID: 0}
-    - target: {fileID: 2063525946721105342, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
-      propertyPath: moveSpeed
-      value: 30
-      objectReference: {fileID: 0}
-    - target: {fileID: 2063525946721105342, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
-      propertyPath: acceleration
-      value: 10
-      objectReference: {fileID: 0}
-    - target: {fileID: 2063525946721105342, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
-      propertyPath: deceleration
-      value: 20
-      objectReference: {fileID: 0}
-    - target: {fileID: 2063525946721105342, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
-      propertyPath: groundLayer.m_Bits
-      value: 256
-      objectReference: {fileID: 0}
     - target: {fileID: 4065093141765531827, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
       propertyPath: m_Name
       value: ArcadeVehicle
-      objectReference: {fileID: 0}
-    - target: {fileID: 4065093141765531827, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
-      propertyPath: m_Layer
-      value: 6
-      objectReference: {fileID: 0}
-    - target: {fileID: 4474176758227904615, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
-      propertyPath: m_Layer
-      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 5431132470905025883, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
       propertyPath: m_LocalPosition.x
@@ -206,18 +170,6 @@ PrefabInstance:
     - target: {fileID: 5431132470905025883, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7205761928194663224, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
-      propertyPath: m_Layer
-      value: 6
-      objectReference: {fileID: 0}
-    - target: {fileID: 7730524643735490732, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
-      propertyPath: m_Layer
-      value: 6
-      objectReference: {fileID: 0}
-    - target: {fileID: 9037366753550533363, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
-      propertyPath: m_Layer
-      value: 6
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
