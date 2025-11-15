@@ -9,25 +9,23 @@ public class ManualFollowCamera : MonoBehaviour
     [Header("Orbit Settings")]
     [SerializeField] private float distance = 14f;
     [SerializeField] private float yawSpeed = 120f;
-    [SerializeField] private float pitchSpeed = 120f;
-    [SerializeField] private Vector2 pitchLimits = new Vector2(-30f, 80f);
+    [SerializeField] private float pitch = 0f; // Pitch is now a serialized field for direct Inspector control
+    [SerializeField] private float yOffset = 0f; // Y-axis offset
 
-    [Header("Smoothing")]
-    [SerializeField] private float positionSmoothSpeed = 0.125f;
+    // Removed [Header("Smoothing")] and positionSmoothSpeed
 
     private InputSystem_Actions inputActions;
     private Vector2 cameraInput;
 
     private float yaw = 0f;
-    private float pitch = 0f;
+    // pitch is now a serialized field, no longer a private float
 
     private float initialYaw = 0f;
-    private float initialPitch = 0f;
+    private float initialPitch = 0f; // Keep for reset functionality
 
     void Awake()
     {
         inputActions = new InputSystem_Actions();
-        // Using the new Camera_Arcade action map created by the user
         inputActions.Camera_Arcade.CameraMove.performed += OnCameraMove;
         inputActions.Camera_Arcade.CameraMove.canceled += OnCameraMove;
         inputActions.Camera_Arcade.CameraReset.performed += OnCameraReset;
@@ -41,11 +39,16 @@ public class ManualFollowCamera : MonoBehaviour
     private void OnCameraReset(InputAction.CallbackContext context)
     {
         yaw = initialYaw;
-        pitch = initialPitch;
+        pitch = initialPitch; // Reset pitch to its initial Inspector value
         cameraInput = Vector2.zero;
 
-        Quaternion finalRotation = Quaternion.Euler(pitch, yaw, 0);
+        // Construct rotation to avoid gimbal lock
+        Quaternion yawRotation = Quaternion.AngleAxis(yaw, Vector3.up); // Yaw around world Y-axis
+        Quaternion pitchRotation = Quaternion.AngleAxis(pitch, Vector3.right); // Pitch around local X-axis
+        Quaternion finalRotation = yawRotation * pitchRotation;
+
         Vector3 finalPosition = target.position - (finalRotation * Vector3.forward * distance);
+        finalPosition.y += yOffset;
 
         transform.position = finalPosition;
         transform.rotation = finalRotation;
@@ -71,10 +74,11 @@ public class ManualFollowCamera : MonoBehaviour
 
         Vector3 angles = transform.rotation.eulerAngles;
         yaw = angles.y;
-        pitch = angles.x;
+        // pitch is now a serialized field, so its initial value comes from the Inspector.
+        // We store it for reset functionality.
+        initialPitch = pitch; 
 
         initialYaw = yaw;
-        initialPitch = pitch;
     }
 
     void LateUpdate()
@@ -83,26 +87,23 @@ public class ManualFollowCamera : MonoBehaviour
 
         HandleManualRotation();
 
-        Quaternion desiredRotation = Quaternion.Euler(pitch, yaw, 0);
+        // Construct rotation to avoid gimbal lock
+        Quaternion yawRotation = Quaternion.AngleAxis(yaw, Vector3.up); // Yaw around world Y-axis
+        Quaternion pitchRotation = Quaternion.AngleAxis(pitch, Vector3.right); // Pitch around local X-axis
+        Quaternion desiredRotation = yawRotation * pitchRotation;
+
         Vector3 desiredPosition = target.position - (desiredRotation * Vector3.forward * distance);
+        desiredPosition.y += yOffset;
 
-        if (cameraInput.sqrMagnitude > 0.01f)
-        {
-            transform.position = desiredPosition; // Snap position while rotating
-        }
-        else
-        {
-            transform.position = Vector3.Lerp(transform.position, desiredPosition, positionSmoothSpeed); // Smooth follow
-        }
-
+        // Always snap to the desired position and rotation for instant follow
+        transform.position = desiredPosition;
         transform.rotation = desiredRotation;
     }
 
     private void HandleManualRotation()
     {
-        yaw += cameraInput.x * yawSpeed * Time.deltaTime;
-        pitch -= cameraInput.y * pitchSpeed * Time.deltaTime;
-        pitch = Mathf.Clamp(pitch, pitchLimits.x, pitchLimits.y);
+        // Pitch is now controlled directly in the Inspector, not by input.
+        yaw += cameraInput.x * yawSpeed * Time.deltaTime; // Keep yaw input control
     }
 
     public void SetTarget(Transform newTarget)

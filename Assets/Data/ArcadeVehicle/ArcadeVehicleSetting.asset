@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 903bd2beba3538244995057e1fdf5edb, type: 3}
   m_Name: ArcadeVehicleSetting
   m_EditorClassIdentifier: Assembly-CSharp::ArcadeVehicleDataSO
-  maxSpeed: 30
-  rotationSpeed: 20
+  maxSpeed: 50
+  rotationSpeed: 15
   extraGravityForce: 20
   groundSnapDistance: 1.5
   groundSnapForce: 60

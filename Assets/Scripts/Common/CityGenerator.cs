@@ -6,27 +6,27 @@ public class CityGenerator : MonoBehaviour
     public static event System.Action OnCityGenerated;
 
     [Header("City Layout")]
-    [Tooltip("Size of the city grid in the X direction.")]
+    [Header("도시 그리드의 X축 크기.")]
     public int citySizeX = 20;
-    [Tooltip("Size of the city grid in the Z direction.")]
+    [Header("도시 그리드의 Z축 크기.")]
     public int citySizeZ = 20;
-    [Tooltip("The size of each city block. Roads and buildings will conform to this size.")]
+    [Header("각 도시 블록의 크기. 도로나 건물은 이 크기에 맞춰집니다.")]
     public float blockSize = 25f;
-    [Tooltip("Determines the road network. E.g., a value of 4 means a road every 4th block.")]
+    [Header("도로 네트워크를 결정합니다. 예: 4는 4번째 블록마다 도로를 의미합니다.")]
     public int roadInterval = 4;
-    [Tooltip("The size of the empty margin around the city in grid units.")]
+    [Header("도시 주변의 빈 여백 크기 (그리드 단위).")]
     public int marginSize = 5;
 
     [Header("Building Properties")]
-    [Tooltip("The minimum height of a building.")]
+    [Header("건물의 최소 높이.")]
     public float minBuildingHeight = 10f;
-    [Tooltip("The maximum height of a building.")]
+    [Header("건물의 최대 높이.")]
     public float maxBuildingHeight = 40f;
-    [Tooltip("Material to apply to the generated buildings.")]
+    [Header("생성된 건물에 적용할 재질.")]
     public Material buildingMaterial;
 
     [Header("NavMesh")]
-    [Tooltip("Reference to the NavMeshSurface component for runtime baking.")]
+    [Header("런타임 베이킹을 위한 NavMeshSurface 컴포넌트 참조.")]
     public NavMeshSurface navMeshSurface;
     
     void Start()

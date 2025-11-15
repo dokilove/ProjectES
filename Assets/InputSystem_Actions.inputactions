@@ -1456,7 +1456,7 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "Evade",
+                    "name": "ChargingDash",
                     "type": "Button",
                     "id": "45bee683-d48a-4820-8600-dc9c3f24ea4d",
                     "expectedControlType": "",
@@ -1468,6 +1468,15 @@
                     "name": "Exit",
                     "type": "Button",
                     "id": "68237d32-7b40-45a8-9864-1ac62ded79e2",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "ChangeCamera",
+                    "type": "Button",
+                    "id": "751e50cb-e58a-42a6-b9ef-e5cfef38d4de",
                     "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
@@ -1713,7 +1722,7 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "Evade",
+                    "action": "ChargingDash",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -1724,7 +1733,7 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "Evade",
+                    "action": "ChargingDash",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -1780,6 +1789,28 @@
                     "processors": "",
                     "groups": "",
                     "action": "Exit",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "76e7586a-2594-4479-b847-32f2ee2ff62f",
+                    "path": "<Gamepad>/buttonNorth",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "ChangeCamera",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "83113dcc-279c-4ebb-8a37-1eddc4d3f47c",
+                    "path": "<Keyboard>/c",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "ChangeCamera",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

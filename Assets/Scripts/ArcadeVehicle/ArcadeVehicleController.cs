@@ -22,33 +22,20 @@ public class ArcadeVehicleController : MonoBehaviour
     {
         rb = GetComponent<Rigidbody>();
         playerActions = new InputSystem_Actions();
-
-        // We only freeze rotation, allowing the Rigidbody to be affected by gravity on the Y-axis.
-        // We only freeze rotation, allowing the Rigidbody to be affected by gravity on the Y-axis.
-    // rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
-    }
-
-    private void Start()
-    {
-        // Position the vehicle on the ground when the game starts.
-        // PlaceOnGround(); // This is now handled by the OnCityGenerated event
     }
 
     private void OnEnable()
     {
         playerActions.Player.Enable();
-        CityGenerator.OnCityGenerated += PlaceOnGround;
     }
 
     private void OnDisable()
     {
         playerActions.Player.Disable();
-        CityGenerator.OnCityGenerated -= PlaceOnGround;
     }
 
     private void Update()
     {
-        // Read movement input in Update for responsiveness.
         moveInput = playerActions.Player.Move.ReadValue<Vector2>();
     }
 
@@ -56,63 +43,49 @@ public class ArcadeVehicleController : MonoBehaviour
     {
         if (vehicleData == null) return;
 
-        // Apply extra gravity every physics step for a less floaty feel.
         rb.AddForce(Vector3.down * vehicleData.extraGravityForce, ForceMode.Acceleration);
 
-        // Apply physics-based movement in FixedUpdate.
         HandleMovement();
         HandleGroundSnapping();
     }
 
-    /// <summary>
-    /// Casts a ray downwards to find the ground and places the vehicle on top of it.
-    /// </summary>
-    private void PlaceOnGround()
+    private void HandleMovement()
     {
-        // Start the ray from slightly above the vehicle to ensure it doesn't start inside the ground
-        Vector3 rayStart = transform.position + Vector3.up * 5f;
+        rb.angularVelocity = Vector3.zero;
 
-        if (Physics.Raycast(rayStart, Vector3.down, out RaycastHit hit, groundCheckDistance, groundLayer))
+        Vector3 cameraForward = Camera.main.transform.forward;
+        Vector3 cameraRight = Camera.main.transform.right;
+        Vector3 cameraUp = Camera.main.transform.up;
+
+        Vector3 effectiveForward;
+        Vector3 effectiveRight;
+
+        // Check if camera is looking almost straight down (pitch ~90 degrees)
+        // If dot product of camera's forward and world down is close to 1, it's looking straight down.
+        float dotProduct = Vector3.Dot(cameraForward, Vector3.down);
+
+        // Use a threshold (e.g., 0.9f) to determine if the camera is looking mostly straight down.
+        if (dotProduct > 0.9f) // Camera is looking mostly straight down (e.g., pitch > ~80 degrees)
         {
-            // We need the vehicle's height to position it correctly.
-            // Using the collider's bounds is a reliable way to do this.
-            var vehicleCollider = GetComponent<Collider>();
-            if (vehicleCollider != null)
-            {
-                // The pivot of the vehicle might not be at its base.
-                // We use 'bounds.extents.y' which is half the collider's height.
-                // This positions the vehicle so its bottom touches the ground.
-                float heightOffset = vehicleCollider.bounds.extents.y;
-                transform.position = new Vector3(transform.position.x, hit.point.y + heightOffset, transform.position.z);
-            }
-            else
-            {
-                // Fallback if there's no collider, just place it slightly above the ground.
-                transform.position = new Vector3(transform.position.x, hit.point.y + 0.5f, transform.position.z);
-            }
+            // In this case, 'up' on the stick should map to camera's 'up' (world forward/back)
+            // and 'right' on the stick maps to camera's 'right'.
+            effectiveForward = cameraUp; // This is world forward/back
+            effectiveRight = cameraRight;
         }
         else
         {
-            Debug.LogWarning("PlaceOnGround: Could not find ground beneath the vehicle. Check ground layer and distance.", this);
+            // Normal case: flatten camera's forward and right vectors
+            effectiveForward = cameraForward;
+            effectiveRight = cameraRight;
         }
-    }
 
-    private void HandleMovement()
-    {
-        // We control rotation manually, so we zero out angular velocity.
-        rb.angularVelocity = Vector3.zero;
+        effectiveForward.y = 0; // Always flatten to XZ plane
+        effectiveRight.y = 0;   // Always flatten to XZ plane
 
-        // Get camera's forward and right vectors, flattened onto the horizontal plane (y=0).
-        Vector3 moveForward = Camera.main.transform.forward;
-        Vector3 moveRight = Camera.main.transform.right;
+        effectiveForward.Normalize();
+        effectiveRight.Normalize();
 
-        moveForward.y = 0;
-        moveRight.y = 0;
-
-        moveForward.Normalize();
-        moveRight.Normalize();
-
-        Vector3 currentMoveVector = (moveForward * moveInput.y + moveRight * moveInput.x);
+        Vector3 currentMoveVector = (effectiveForward * moveInput.y + effectiveRight * moveInput.x);
 
         if (moveInput.sqrMagnitude > 0.1f)
         {
@@ -124,7 +97,6 @@ public class ArcadeVehicleController : MonoBehaviour
             rb.linearVelocity = Vector3.zero;
         }
 
-        // If there is movement input, smoothly rotate the vehicle to face the direction of movement.
         if (currentMoveVector != Vector3.zero)
         {
             Quaternion targetRotation = Quaternion.LookRotation(currentMoveVector);
@@ -134,11 +106,8 @@ public class ArcadeVehicleController : MonoBehaviour
 
     private void HandleGroundSnapping()
     {
-        // Raycast downwards to find the ground
         if (Physics.Raycast(transform.position, Vector3.down, vehicleData.groundSnapDistance, groundLayer))
         {
-            // Apply a downward force to stick to the ground, but only if we are not trying to go up.
-            // This prevents the snap from interfering with jumps over ramps.
             if (rb.linearVelocity.y <= 0)
             {
                 rb.AddForce(Vector3.down * vehicleData.groundSnapForce, ForceMode.Acceleration);
@@ -146,3 +115,4 @@ public class ArcadeVehicleController : MonoBehaviour
         }
     }
 }
+

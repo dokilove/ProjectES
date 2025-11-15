@@ -1542,7 +1542,7 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
                     ""initialStateCheck"": false
                 },
                 {
-                    ""name"": ""Evade"",
+                    ""name"": ""ChargingDash"",
                     ""type"": ""Button"",
                     ""id"": ""45bee683-d48a-4820-8600-dc9c3f24ea4d"",
                     ""expectedControlType"": """",
@@ -1554,6 +1554,15 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
                     ""name"": ""Exit"",
                     ""type"": ""Button"",
                     ""id"": ""68237d32-7b40-45a8-9864-1ac62ded79e2"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""ChangeCamera"",
+                    ""type"": ""Button"",
+                    ""id"": ""751e50cb-e58a-42a6-b9ef-e5cfef38d4de"",
                     ""expectedControlType"": """",
                     ""processors"": """",
                     ""interactions"": """",
@@ -1799,7 +1808,7 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",
-                    ""action"": ""Evade"",
+                    ""action"": ""ChargingDash"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 },
@@ -1810,7 +1819,7 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",
-                    ""action"": ""Evade"",
+                    ""action"": ""ChargingDash"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 },
@@ -1866,6 +1875,28 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""groups"": """",
                     ""action"": ""Exit"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""76e7586a-2594-4479-b847-32f2ee2ff62f"",
+                    ""path"": ""<Gamepad>/buttonNorth"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""ChangeCamera"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""83113dcc-279c-4ebb-8a37-1eddc4d3f47c"",
+                    ""path"": ""<Keyboard>/c"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""ChangeCamera"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -1979,8 +2010,9 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
         m_Vehicle_Arcade_Move = m_Vehicle_Arcade.FindAction("Move", throwIfNotFound: true);
         m_Vehicle_Arcade_Look = m_Vehicle_Arcade.FindAction("Look", throwIfNotFound: true);
         m_Vehicle_Arcade_Interact = m_Vehicle_Arcade.FindAction("Interact", throwIfNotFound: true);
-        m_Vehicle_Arcade_Evade = m_Vehicle_Arcade.FindAction("Evade", throwIfNotFound: true);
+        m_Vehicle_Arcade_ChargingDash = m_Vehicle_Arcade.FindAction("ChargingDash", throwIfNotFound: true);
         m_Vehicle_Arcade_Exit = m_Vehicle_Arcade.FindAction("Exit", throwIfNotFound: true);
+        m_Vehicle_Arcade_ChangeCamera = m_Vehicle_Arcade.FindAction("ChangeCamera", throwIfNotFound: true);
     }
 
     ~@InputSystem_Actions()
@@ -2749,8 +2781,9 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
     private readonly InputAction m_Vehicle_Arcade_Move;
     private readonly InputAction m_Vehicle_Arcade_Look;
     private readonly InputAction m_Vehicle_Arcade_Interact;
-    private readonly InputAction m_Vehicle_Arcade_Evade;
+    private readonly InputAction m_Vehicle_Arcade_ChargingDash;
     private readonly InputAction m_Vehicle_Arcade_Exit;
+    private readonly InputAction m_Vehicle_Arcade_ChangeCamera;
     /// <summary>
     /// Provides access to input actions defined in input action map "Vehicle_Arcade".
     /// </summary>
@@ -2775,13 +2808,17 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
         /// </summary>
         public InputAction @Interact => m_Wrapper.m_Vehicle_Arcade_Interact;
         /// <summary>
-        /// Provides access to the underlying input action "Vehicle_Arcade/Evade".
+        /// Provides access to the underlying input action "Vehicle_Arcade/ChargingDash".
         /// </summary>
-        public InputAction @Evade => m_Wrapper.m_Vehicle_Arcade_Evade;
+        public InputAction @ChargingDash => m_Wrapper.m_Vehicle_Arcade_ChargingDash;
         /// <summary>
         /// Provides access to the underlying input action "Vehicle_Arcade/Exit".
         /// </summary>
         public InputAction @Exit => m_Wrapper.m_Vehicle_Arcade_Exit;
+        /// <summary>
+        /// Provides access to the underlying input action "Vehicle_Arcade/ChangeCamera".
+        /// </summary>
+        public InputAction @ChangeCamera => m_Wrapper.m_Vehicle_Arcade_ChangeCamera;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -2817,12 +2854,15 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
             @Interact.started += instance.OnInteract;
             @Interact.performed += instance.OnInteract;
             @Interact.canceled += instance.OnInteract;
-            @Evade.started += instance.OnEvade;
-            @Evade.performed += instance.OnEvade;
-            @Evade.canceled += instance.OnEvade;
+            @ChargingDash.started += instance.OnChargingDash;
+            @ChargingDash.performed += instance.OnChargingDash;
+            @ChargingDash.canceled += instance.OnChargingDash;
             @Exit.started += instance.OnExit;
             @Exit.performed += instance.OnExit;
             @Exit.canceled += instance.OnExit;
+            @ChangeCamera.started += instance.OnChangeCamera;
+            @ChangeCamera.performed += instance.OnChangeCamera;
+            @ChangeCamera.canceled += instance.OnChangeCamera;
         }
 
         /// <summary>
@@ -2843,12 +2883,15 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
             @Interact.started -= instance.OnInteract;
             @Interact.performed -= instance.OnInteract;
             @Interact.canceled -= instance.OnInteract;
-            @Evade.started -= instance.OnEvade;
-            @Evade.performed -= instance.OnEvade;
-            @Evade.canceled -= instance.OnEvade;
+            @ChargingDash.started -= instance.OnChargingDash;
+            @ChargingDash.performed -= instance.OnChargingDash;
+            @ChargingDash.canceled -= instance.OnChargingDash;
             @Exit.started -= instance.OnExit;
             @Exit.performed -= instance.OnExit;
             @Exit.canceled -= instance.OnExit;
+            @ChangeCamera.started -= instance.OnChangeCamera;
+            @ChangeCamera.performed -= instance.OnChangeCamera;
+            @ChangeCamera.canceled -= instance.OnChangeCamera;
         }
 
         /// <summary>
@@ -3225,12 +3268,12 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnInteract(InputAction.CallbackContext context);
         /// <summary>
-        /// Method invoked when associated input action "Evade" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// Method invoked when associated input action "ChargingDash" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
         /// </summary>
         /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
-        void OnEvade(InputAction.CallbackContext context);
+        void OnChargingDash(InputAction.CallbackContext context);
         /// <summary>
         /// Method invoked when associated input action "Exit" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
         /// </summary>
@@ -3238,5 +3281,12 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnExit(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "ChangeCamera" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnChangeCamera(InputAction.CallbackContext context);
     }
 }
