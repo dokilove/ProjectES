@@ -278,15 +278,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e15ee118a6128df499bea1c737c2cb52, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ArcadeVehicleController
-  maxSpeed: 15
-  rotationSpeed: 15
+  vehicleData: {fileID: 11400000, guid: f727a6a025bf2e649b8bf0412a79fa70, type: 2}
   groundLayer:
     serializedVersion: 2
     m_Bits: 256
   groundCheckDistance: 50
-  extraGravityForce: 20
-  groundSnapDistance: 1.5
-  groundSnapForce: 60
 --- !u!1 &4474176758227904615
 GameObject:
   m_ObjectHideFlags: 0

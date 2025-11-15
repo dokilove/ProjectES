@@ -4,23 +4,14 @@ using UnityEngine.InputSystem;
 [RequireComponent(typeof(Rigidbody))]
 public class ArcadeVehicleController : MonoBehaviour
 {
-    [Header("Movement")]
-    [SerializeField] private float maxSpeed = 15f;
-    [SerializeField] private float rotationSpeed = 15f;
+    [Header("Data")]
+    [SerializeField] private ArcadeVehicleDataSO vehicleData;
 
     [Header("Grounding")]
     [Tooltip("Set this to the layer your ground objects are on.")]
     [SerializeField] private LayerMask groundLayer;
     [Tooltip("How far down to check for ground from the vehicle's starting position.")]
     [SerializeField] private float groundCheckDistance = 50f;
-
-    [Header("Gravity")]
-    [Tooltip("Extra gravity force to apply, making the vehicle fall faster. Acts as an acceleration.")]
-    [SerializeField] private float extraGravityForce = 20f;
-    [Tooltip("How far down to check for ground to apply snapping force.")]
-    [SerializeField] private float groundSnapDistance = 1.5f;
-    [Tooltip("How strongly to push the vehicle down to stick to slopes.")]
-    [SerializeField] private float groundSnapForce = 60f;
 
     private Rigidbody rb;
     private InputSystem_Actions playerActions;
@@ -63,8 +54,10 @@ public class ArcadeVehicleController : MonoBehaviour
 
     private void FixedUpdate()
     {
+        if (vehicleData == null) return;
+
         // Apply extra gravity every physics step for a less floaty feel.
-        rb.AddForce(Vector3.down * extraGravityForce, ForceMode.Acceleration);
+        rb.AddForce(Vector3.down * vehicleData.extraGravityForce, ForceMode.Acceleration);
 
         // Apply physics-based movement in FixedUpdate.
         HandleMovement();
@@ -124,7 +117,7 @@ public class ArcadeVehicleController : MonoBehaviour
         if (moveInput.sqrMagnitude > 0.1f)
         {
             moveDirection = currentMoveVector.normalized;
-            rb.linearVelocity = moveDirection * maxSpeed;
+            rb.linearVelocity = moveDirection * vehicleData.maxSpeed;
         }
         else
         {
@@ -135,20 +128,20 @@ public class ArcadeVehicleController : MonoBehaviour
         if (currentMoveVector != Vector3.zero)
         {
             Quaternion targetRotation = Quaternion.LookRotation(currentMoveVector);
-            rb.rotation = Quaternion.Slerp(rb.rotation, targetRotation, rotationSpeed * Time.fixedDeltaTime);
+            rb.rotation = Quaternion.Slerp(rb.rotation, targetRotation, vehicleData.rotationSpeed * Time.fixedDeltaTime);
         }
     }
 
     private void HandleGroundSnapping()
     {
         // Raycast downwards to find the ground
-        if (Physics.Raycast(transform.position, Vector3.down, groundSnapDistance, groundLayer))
+        if (Physics.Raycast(transform.position, Vector3.down, vehicleData.groundSnapDistance, groundLayer))
         {
             // Apply a downward force to stick to the ground, but only if we are not trying to go up.
             // This prevents the snap from interfering with jumps over ramps.
             if (rb.linearVelocity.y <= 0)
             {
-                rb.AddForce(Vector3.down * groundSnapForce, ForceMode.Acceleration);
+                rb.AddForce(Vector3.down * vehicleData.groundSnapForce, ForceMode.Acceleration);
             }
         }
     }
