@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.AI;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine.SceneManagement;
@@ -32,12 +33,11 @@ public class GoalManager : MonoBehaviour
     [Tooltip("Minimum distance a goal can spawn from other goals.")]
     public float minSpawnDistanceFromOtherGoals = 10f;
     [Tooltip("How many times to try finding a valid spawn position before giving up.")]
-    private int maxSpawnAttempts = 25;
+    private int maxSpawnAttempts = 30;
 
     private List<Goal> activeGoals = new List<Goal>();
     private bool stageCleared = false;
     private bool isGameOver = false;
-    private List<Vector3> roadPositions = new List<Vector3>();
 
     public class Goal
     {
@@ -58,7 +58,6 @@ public class GoalManager : MonoBehaviour
         {
             Instance = this;
         }
-        // Reset time scale on awake, just in case it was left at 0
         Time.timeScale = 1f;
         UnityEngine.Random.InitState((int)System.DateTime.Now.Ticks);
     }
@@ -82,11 +81,6 @@ public class GoalManager : MonoBehaviour
             return;
         }
 
-        if (cityGenerator != null)
-        {
-            PopulateRoadPositions();
-        }
-
         SpawnInitialGoals();
     }
 
@@ -106,7 +100,6 @@ public class GoalManager : MonoBehaviour
             if (goal.isPlayerInside)
             {
                 goal.dwellTimer += Time.deltaTime;
-
                 float progress = goal.dwellTimer / goal.requiredDwellTime;
                 goal.marker.GetComponent<Renderer>().material.color = Color.Lerp(Color.red, Color.green, progress);
 
@@ -152,9 +145,9 @@ public class GoalManager : MonoBehaviour
 
     public void TriggerGameOver()
     {
-        if (isGameOver) return; // Prevent multiple triggers
+        if (isGameOver) return;
         isGameOver = true;
-        Time.timeScale = 0f; // Pause the game
+        Time.timeScale = 0f;
         Debug.Log("Game Over triggered!");
     }
 
@@ -171,38 +164,34 @@ public class GoalManager : MonoBehaviour
         Vector3 goalPosition = Vector3.zero;
         bool positionFound = false;
 
+        // CityGenerator로부터 정확한 도시 경계를 받아옵니다.
+        Bounds cityBounds = (cityGenerator != null) ? cityGenerator.GetCityBounds() : spawnArea.bounds;
+
         for (int i = 0; i < maxSpawnAttempts; i++)
         {
-            Vector3 potentialPositionXZ;
-            if (roadPositions.Count > 0)
-            {
-                potentialPositionXZ = roadPositions[UnityEngine.Random.Range(0, roadPositions.Count)];
-            }
-            else
-            {
-                Bounds bounds = spawnArea.bounds;
-                potentialPositionXZ = new Vector3(
-                    UnityEngine.Random.Range(bounds.min.x, bounds.max.x),
-                    0, // Y is irrelevant for the initial position finding
-                    UnityEngine.Random.Range(bounds.min.z, bounds.max.z)
-                );
-            }
+            Vector3 randomPoint = new Vector3(
+                UnityEngine.Random.Range(cityBounds.min.x, cityBounds.max.x),
+                cityBounds.center.y,
+                UnityEngine.Random.Range(cityBounds.min.z, cityBounds.max.z)
+            );
 
-            if (Vector3.Distance(new Vector3(player.position.x, 0, player.position.z), potentialPositionXZ) < minSpawnDistanceFromPlayer)
+            // NavMesh.SamplePosition을 사용해 가장 가까운 NavMesh 위의 점을 찾습니다.
+            if (NavMesh.SamplePosition(randomPoint, out NavMeshHit navHit, 100f, NavMesh.AllAreas))
             {
-                continue;
-            }
+                Vector3 potentialPosition = navHit.position;
 
-            bool tooCloseToAnotherGoal = activeGoals.Any(g => Vector3.Distance(new Vector3(g.position.x, 0, g.position.z), potentialPositionXZ) < minSpawnDistanceFromOtherGoals);
-            if (tooCloseToAnotherGoal)
-            {
-                continue;
-            }
+                if (Vector3.Distance(player.position, potentialPosition) < minSpawnDistanceFromPlayer)
+                {
+                    continue;
+                }
 
-            // Raycast down to find the actual ground height
-            if (Physics.Raycast(new Vector3(potentialPositionXZ.x, 1000f, potentialPositionXZ.z), Vector3.down, out RaycastHit hit, 2000f))
-            {
-                goalPosition = hit.point;
+                bool tooCloseToAnotherGoal = activeGoals.Any(g => Vector3.Distance(g.position, potentialPosition) < minSpawnDistanceFromOtherGoals);
+                if (tooCloseToAnotherGoal)
+                {
+                    continue;
+                }
+
+                goalPosition = potentialPosition;
                 positionFound = true;
                 break;
             }
@@ -210,7 +199,7 @@ public class GoalManager : MonoBehaviour
 
         if (!positionFound)
         {
-            Debug.LogWarning($"Could not find a valid spawn position for goal #{activeGoals.Count + 1} after {maxSpawnAttempts} attempts. Skipping this goal.");
+            Debug.LogWarning($"Could not find a valid spawn position on NavMesh for goal #{activeGoals.Count + 1} after {maxSpawnAttempts} attempts.");
             return;
         }
 
@@ -222,7 +211,7 @@ public class GoalManager : MonoBehaviour
         collider.radius = goalRadius;
 
         goalMarker.transform.localScale = new Vector3(goalRadius * 2, 0.1f, goalRadius * 2);
-        goalMarker.transform.position = goalPosition + Vector3.up * 0.05f; // Place slightly above ground to prevent z-fighting
+        goalMarker.transform.position = goalPosition + Vector3.up * 0.05f;
         goalMarker.GetComponent<Renderer>().material.color = Color.red;
 
         Goal newGoal = new Goal
@@ -246,30 +235,6 @@ public class GoalManager : MonoBehaviour
         {
             stageCleared = true;
             Debug.Log("Stage Cleared!");
-        }
-    }
-
-    void PopulateRoadPositions()
-    {
-        roadPositions.Clear();
-        if (cityGenerator == null) return;
-
-        for (int x = 0; x < cityGenerator.citySizeX; x++)
-        {
-            for (int z = 0; z < cityGenerator.citySizeZ; z++)
-            {
-                if (x % cityGenerator.roadInterval == 0 || z % cityGenerator.roadInterval == 0)
-                {
-                    float xPos = x * cityGenerator.blockSize;
-                    float zPos = z * cityGenerator.blockSize;
-                    
-                    // Raycast down to find the actual ground height for the road position
-                    if (Physics.Raycast(new Vector3(xPos, 1000f, zPos), Vector3.down, out RaycastHit hit, 2000f))
-                    {
-                        roadPositions.Add(hit.point);
-                    }
-                }
-            }
         }
     }
 

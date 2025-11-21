@@ -7,6 +7,7 @@ public class CameraSwitcher : MonoBehaviour
     [Header("Cameras")]
     [Tooltip("Drag all camera GameObjects you want to switch between here.")]
     public Camera[] cameras;
+    public Camera ActiveCamera => cameras != null && cameras.Length > currentCameraIndex ? cameras[currentCameraIndex] : null;
 
     private InputSystem_Actions inputActions;
     private int currentCameraIndex = 0;

@@ -1,0 +1,7 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/Scripts/UI/Minimap.uss?fileID=7433441132597879392&amp;guid=54bfb464d9a3ee244a3d04e2b659a78a&amp;type=3#Minimap" />
+    <ui:VisualElement name="MinimapContainer" class="minimap-container" style="width: 128px; height: 128px;">
+        <ui:Image name="MinimapImage" class="minimap-image" />
+        <ui:VisualElement name="PlayerIcon" class="player-icon" />
+    </ui:VisualElement>
+</ui:UXML>
