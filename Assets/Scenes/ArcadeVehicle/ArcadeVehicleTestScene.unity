@@ -1036,9 +1036,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ManualFollowCamera
   target: {fileID: 309706357}
-  distance: 6
+  distance: 12
   yawSpeed: 120
-  pitch: -10
+  pitch: -6
   yOffset: 5
 --- !u!114 &1712444801
 MonoBehaviour:
