@@ -87,16 +87,6 @@ public class TownGeneratorEditor : Editor
 
         EditorGUILayout.Space();
         EditorGUILayout.LabelField("Advanced", EditorStyles.boldLabel);
-        if (GUILayout.Button("Find Intersections"))
-        {
-            generator.FindIntersections();
-            SceneView.RepaintAll();
-        }
-        if (GUILayout.Button("Build Graph"))
-        {
-            generator.BuildGraph();
-            SceneView.RepaintAll();
-        }
         // --- End Generation Buttons ---
 
 
@@ -123,9 +113,6 @@ public class TownGeneratorEditor : Editor
             }
         }
 
-        DrawIntersections(generator);
-        DrawGraph(generator); // Draw the graph
-
         // Handle input only if a road is selected
         if (selectedRoadIndex != -1 && selectedRoadIndex < generator.roads.Count)
         {
@@ -141,7 +128,7 @@ public class TownGeneratorEditor : Editor
             
             EditorGUI.BeginChangeCheck();
             float handleSize = HandleUtility.GetHandleSize(road.nodes[i]) * 0.1f;
-            var fmh_144_68_638997718916906200 = Quaternion.identity; Vector3 newPos = Handles.FreeMoveHandle(road.nodes[i], handleSize, Vector3.zero, Handles.SphereHandleCap);
+            Vector3 newPos = Handles.FreeMoveHandle(road.nodes[i], handleSize, Vector3.zero, Handles.SphereHandleCap);
 
             if (EditorGUI.EndChangeCheck())
             {
@@ -164,37 +151,6 @@ public class TownGeneratorEditor : Editor
         for (int i = 0; i < road.nodes.Count - 1; i++)
         {
             Handles.DrawLine(road.nodes[i], road.nodes[i + 1]);
-        }
-    }
-
-    private void DrawIntersections(TownGenerator generator)
-    {
-        if (generator.intersectionPoints == null) return;
-        Handles.color = Color.blue;
-        foreach (var point in generator.intersectionPoints)
-        {
-            float handleSize = HandleUtility.GetHandleSize(point) * 0.2f;
-            Handles.SphereHandleCap(0, point, Quaternion.identity, handleSize, EventType.Repaint);
-        }
-    }
-
-    private void DrawGraph(TownGenerator generator)
-    {
-        if (generator.graphNodes == null || generator.graphEdges == null) return;
-
-        // Draw Graph Nodes (Yellow)
-        Handles.color = Color.yellow;
-        foreach (var node in generator.graphNodes)
-        {
-            float handleSize = HandleUtility.GetHandleSize(node.position) * 0.15f;
-            Handles.SphereHandleCap(0, node.position, Quaternion.identity, handleSize, EventType.Repaint);
-        }
-
-        // Draw Graph Edges (Green)
-        Handles.color = Color.green;
-        foreach (var edge in generator.graphEdges)
-        {
-            Handles.DrawLine(edge.startNode.position, edge.endNode.position);
         }
     }
 

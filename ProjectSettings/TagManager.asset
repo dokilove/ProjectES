@@ -16,8 +16,8 @@ TagManager:
   - Ground
   - Enemy
   - NavMeshIgnore
-  - Buildings
-  - 
+  - Building
+  - Road
   - 
   - 
   - 

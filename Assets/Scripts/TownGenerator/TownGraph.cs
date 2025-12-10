@@ -40,23 +40,4 @@ public class GraphEdge
     }
 }
 
-// Custom comparer for Vector3 keys in Dictionary, to handle floating point inaccuracies
-public class Vector3EqualityComparer : IEqualityComparer<Vector3>
-{
-    private const float Tolerance = 0.01f; // Adjust as needed
 
-    public bool Equals(Vector3 v1, Vector3 v2)
-    {
-        return Mathf.Abs(v1.x - v2.x) < Tolerance &&
-               Mathf.Abs(v1.y - v2.y) < Tolerance &&
-               Mathf.Abs(v1.z - v2.z) < Tolerance;
-    }
-
-    public int GetHashCode(Vector3 obj)
-    {
-        // Simple hash code, might have collisions but good enough for small tolerances
-        return (Mathf.RoundToInt(obj.x / Tolerance) * 31 +
-                Mathf.RoundToInt(obj.y / Tolerance) * 17 +
-                Mathf.RoundToInt(obj.z / Tolerance) * 13);
-    }
-}

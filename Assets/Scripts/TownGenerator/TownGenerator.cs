@@ -1,6 +1,8 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using System.IO;
 
 [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer), typeof(MeshCollider))]
 public class TownGenerator : MonoBehaviour
@@ -16,15 +18,13 @@ public class TownGenerator : MonoBehaviour
     public float buildingSpacing = 20f;
     public Vector2 buildingRandomOffset = new Vector2(0, 5f);
     public Vector2 buildingRandomSpacing = new Vector2(0, 10f);
+    public LayerMask terrainLayer; // Assign your terrain layer in the Inspector
+    public LayerMask roadLayer;    // Assign your road layer in the Inspector
+    public LayerMask buildingLayer; // Assign your building layer in the Inspector
 
-    [Header("Graph Data (Debug)")]
-    public List<GraphNode> graphNodes = new List<GraphNode>();
-    public List<GraphEdge> graphEdges = new List<GraphEdge>();
-
-    [Header("Debug")]
-    public List<Vector3> intersectionPoints = new List<Vector3>();
-    public List<List<Vector3>> cityBlocks = new List<List<Vector3>>();
-
+    [Header("Building Rows")]
+    public int buildingRowsPerSide = 1; // Number of rows on each side of the road
+    public float rowSpacing = 5f;       // Spacing between building rows
 
     private const string BUILDING_CONTAINER_NAME = "[Generated Buildings]";
 
@@ -67,6 +67,9 @@ public class TownGenerator : MonoBehaviour
         {
             meshRenderer.material = roadMaterial;
         }
+
+        // Automatically assign the "Road" layer to this GameObject
+        gameObject.layer = LayerMask.NameToLayer("Road");
     }
 
     public void ClearRoads()
@@ -147,6 +150,8 @@ public class TownGenerator : MonoBehaviour
         GameObject buildingContainer = new GameObject(BUILDING_CONTAINER_NAME);
         buildingContainer.transform.SetParent(transform);
 
+        // This method is now simplified as city blocks are not being found.
+        // It will place buildings along roads without considering blocks.
         foreach (var road in roads)
         {
             if (road.nodes.Count < 2) continue;
@@ -160,15 +165,43 @@ public class TownGenerator : MonoBehaviour
             float currentDistance = 0;
             while (currentDistance < roadLength)
             {
-                currentDistance += buildingSpacing + Random.Range(buildingRandomSpacing.x, buildingRandomSpacing.y);
-                if (currentDistance >= roadLength) break;
+                GameObject prefabToPlace = buildingPrefabs[Random.Range(0, buildingPrefabs.Length)];
+                if (prefabToPlace == null)
+                {
+                    currentDistance += buildingSpacing; // Advance anyway to avoid infinite loop
+                    continue;
+                }
+
+                // Get approximate size of the building prefab for placement logic
+                // Assuming the prefab has a Renderer component
+                Renderer prefabRenderer = prefabToPlace.GetComponentInChildren<Renderer>();
+                Vector3 buildingSize = prefabRenderer != null ? prefabRenderer.bounds.size : Vector3.one * buildingSpacing; // Fallback size
 
                 GetPathPositionAndDirection(road, currentDistance, out Vector3 position, out Vector3 direction);
 
-                PlaceBuilding(position, direction, 1, buildingContainer.transform);  // Right side
-                PlaceBuilding(position, direction, -1, buildingContainer.transform); // Left side
+                float maxPlacedWidth = 0f;
+                for (int i = 0; i < buildingRowsPerSide; i++)
+                {
+                    float current_row_offset = (roadWidth * 0.5f) + buildingOffset + (i * (buildingSize.x + rowSpacing));
+
+                    // Try placing on the right side
+                    float placedWidthRight = PlaceBuilding(prefabToPlace, position, direction, 1, current_row_offset, buildingContainer.transform);
+                    // Try placing on the left side
+                    float placedWidthLeft = PlaceBuilding(prefabToPlace, position, direction, -1, current_row_offset, buildingContainer.transform);
+                    
+                    maxPlacedWidth = Mathf.Max(maxPlacedWidth, placedWidthRight, placedWidthLeft);
+                }
+
+                // Advance currentDistance by the width of the placed building plus some random spacing
+                float advanceAmount = maxPlacedWidth;
+                if (advanceAmount == 0) advanceAmount = buildingSize.z; // If nothing placed, use estimated size
+
+                currentDistance += advanceAmount + Random.Range(buildingRandomSpacing.x, buildingRandomSpacing.y);
+                if (currentDistance >= roadLength) break;
             }
         }
+
+        CleanupOverlappingBuildings(buildingContainer.transform);
     }
 
     public void ClearBuildings()
@@ -200,286 +233,111 @@ public class TownGenerator : MonoBehaviour
         }
     }
 
-    private void PlaceBuilding(Vector3 position, Vector3 direction, int side, Transform parent)
+    private float PlaceBuilding(GameObject prefab, Vector3 position, Vector3 direction, int side, float rowOffset, Transform parent)
     {
-        Vector3 perpendicular = Vector3.Cross(direction, Vector3.up).normalized * side;
-        float offset = buildingOffset + Random.Range(buildingRandomOffset.x, buildingRandomOffset.y);
-        Vector3 buildingPosition = position + perpendicular * offset;
+        if (prefab == null) return 0f;
 
-        if (Physics.Raycast(buildingPosition + Vector3.up * 200f, Vector3.down, out RaycastHit hit, 400f))
+        Vector3 perpendicular = Vector3.Cross(direction, Vector3.up).normalized * side;
+        Vector3 buildingPosition = position + perpendicular * rowOffset;
+
+        // Get actual building size from prefab
+        Renderer prefabRenderer = prefab.GetComponentInChildren<Renderer>();
+        if (prefabRenderer == null)
         {
-            buildingPosition.y = hit.point.y;
+            Debug.LogWarning($"Prefab {prefab.name} is missing a Renderer component. Cannot determine size for placement.");
+            return 0f;
+        }
+        Vector3 buildingSize = prefabRenderer.bounds.size;
+        Vector3 buildingHalfExtents = buildingSize * 0.5f; 
+        Quaternion buildingRotation = Quaternion.LookRotation(-perpendicular);
+
+        // Adjust building position to be centered on its base, assuming pivot is at bottom-center
+        // buildingPosition.y = position.y; // Initial Y from road centerline, will be corrected by raycast
+
+        // Check for overlaps before placing the building
+        // Check against roads and other buildings
+        if (Physics.CheckBox(buildingPosition, buildingHalfExtents, buildingRotation, roadLayer | buildingLayer))
+        {
+            // Overlap detected, do not place building here
+            return 0f; // Indicate no building was placed
+        }
+
+        // Raycast to find the actual ground height
+        // Start raycast from above the building's estimated top
+        if (Physics.Raycast(buildingPosition + Vector3.up * buildingSize.y, Vector3.down, out RaycastHit hit, buildingSize.y * 2f + 1f, terrainLayer | roadLayer))
+        {
+            buildingPosition.y = hit.point.y; // Place building on ground, assuming pivot is at bottom-center
         }
         else
         {
-            buildingPosition.y = transform.position.y;
+            // Fallback if no ground is found (e.g., outside the terrain)
+            return 0f;
         }
-
-        Quaternion buildingRotation = Quaternion.LookRotation(-perpendicular);
-
-        GameObject prefab = buildingPrefabs[Random.Range(0, buildingPrefabs.Length)];
-        if (prefab == null) return;
 
         GameObject newBuilding = Instantiate(prefab, buildingPosition, buildingRotation);
         newBuilding.transform.SetParent(parent);
-    }
-    #endregion
-
-    #region Block Generation
-    public void FindIntersections()
-    {
-        intersectionPoints = new List<Vector3>();
-        List<(Vector3, Vector3)> allSegments = new List<(Vector3, Vector3)>();
-
-        // 1. Collect all segments
-        foreach (var road in roads)
+        
+        int buildingLayerIndex = LayerMask.NameToLayer("Building");
+        if (buildingLayerIndex == -1)
         {
-            for (int i = 0; i < road.nodes.Count - 1; i++)
-            {
-                allSegments.Add((road.nodes[i], road.nodes[i + 1]));
-            }
+            Debug.LogWarning("Layer 'Building' not found. Please create it in Edit -> Project Settings -> Tags and Layers.");
+            newBuilding.layer = 0; // Assign to default layer
         }
-
-        // 2. Check for intersections
-        for (int i = 0; i < allSegments.Count; i++)
+        else
         {
-            for (int j = i + 1; j < allSegments.Count; j++)
-            {
-                Vector2 p1 = new Vector2(allSegments[i].Item1.x, allSegments[i].Item1.z);
-                Vector2 p2 = new Vector2(allSegments[i].Item2.x, allSegments[i].Item2.z);
-                Vector2 p3 = new Vector2(allSegments[j].Item1.x, allSegments[j].Item1.z);
-                Vector2 p4 = new Vector2(allSegments[j].Item2.x, allSegments[j].Item2.z);
-
-                if (LineSegementsIntersect(p1, p2, p3, p4, out Vector2 intersection2D))
-                {
-                    float intersectionY = (allSegments[i].Item1.y + allSegments[i].Item2.y + allSegments[j].Item1.y + allSegments[j].Item2.y) / 4f;
-                    intersectionPoints.Add(new Vector3(intersection2D.x, intersectionY, intersection2D.y));
-                }
-            }
+            newBuilding.layer = buildingLayerIndex; // Assign building to Building layer
         }
+        
+        return buildingSize.z; // Return the length of the building along the road direction
     }
 
-    public void BuildGraph()
+    private void CleanupOverlappingBuildings(Transform buildingContainer)
     {
-        graphNodes.Clear();
-        graphEdges.Clear();
-
-        // Ensure intersections are found first
-        FindIntersections();
-
-        // Use a dictionary to store unique nodes and map Vector3 positions to GraphNode objects
-        Dictionary<Vector3, GraphNode> uniqueNodes = new Dictionary<Vector3, GraphNode>(new Vector3EqualityComparer());
-
-        // Add all original road nodes
-        foreach (var road in roads)
+        List<GameObject> buildingsToDestroy = new List<GameObject>();
+        // Get all currently placed buildings
+        List<GameObject> allPlacedBuildings = new List<GameObject>();
+        foreach (Transform child in buildingContainer)
         {
-            foreach (var nodePos in road.nodes)
+            allPlacedBuildings.Add(child.gameObject);
+        }
+
+        foreach (GameObject building in allPlacedBuildings)
+        {
+            if (building == null) continue; // Might have been destroyed by a previous check
+
+            Collider buildingCollider = building.GetComponent<Collider>();
+            if (buildingCollider == null) continue;
+
+            // Check for overlaps with roads OR other buildings
+            // Exclude the building itself from the overlap check
+            Collider[] overlaps = Physics.OverlapBox(building.transform.position, buildingCollider.bounds.extents, building.transform.rotation, roadLayer | buildingLayer);
+            
+            bool isOverlapping = false;
+            foreach (Collider overlapCollider in overlaps)
             {
-                if (!uniqueNodes.ContainsKey(nodePos))
+                // If it overlaps with a road, mark for destruction
+                if (((1 << overlapCollider.gameObject.layer) & roadLayer) != 0)
                 {
-                    GraphNode newNode = new GraphNode(nodePos);
-                    uniqueNodes.Add(nodePos, newNode);
-                    graphNodes.Add(newNode);
+                    isOverlapping = true;
+                    break;
                 }
+                // If it overlaps with another building (and it's not itself)
+                if (((1 << overlapCollider.gameObject.layer) & buildingLayer) != 0 && overlapCollider.gameObject != building)
+                {
+                    isOverlapping = true;
+                    break;
+                }
+            }
+
+            if (isOverlapping)
+            {
+                buildingsToDestroy.Add(building);
             }
         }
 
-        // Add all intersection points
-        foreach (var intersectionPos in intersectionPoints)
+        foreach (GameObject building in buildingsToDestroy)
         {
-            if (!uniqueNodes.ContainsKey(intersectionPos))
-            {
-                GraphNode newNode = new GraphNode(intersectionPos);
-                uniqueNodes.Add(intersectionPos, newNode);
-                graphNodes.Add(newNode);
-            }
-        }
-
-        // Now, create edges
-        foreach (var road in roads)
-        {
-            for (int i = 0; i < road.nodes.Count - 1; i++)
-            {
-                Vector3 segmentStart = road.nodes[i];
-                Vector3 segmentEnd = road.nodes[i + 1];
-
-                List<GraphNode> nodesOnSegment = new List<GraphNode>();
-                nodesOnSegment.Add(uniqueNodes[segmentStart]);
-                nodesOnSegment.Add(uniqueNodes[segmentEnd]);
-
-                // Find all intersection points that lie on this segment
-                foreach (var intersectionPos in intersectionPoints)
-                {
-                    // Check if the intersection point is on the current segment
-                    // Use 2D projection for this check
-                    Vector2 segStart2D = new Vector2(segmentStart.x, segmentStart.z);
-                    Vector2 segEnd2D = new Vector2(segmentEnd.x, segmentEnd.z);
-                    Vector2 intersect2D = new Vector2(intersectionPos.x, intersectionPos.z);
-
-                    // Check if point is collinear and within the segment bounds
-                    float crossProduct = (intersect2D.y - segStart2D.y) * (segEnd2D.x - segStart2D.x) -
-                                         (intersect2D.x - segStart2D.x) * (segEnd2D.y - segStart2D.y);
-
-                    if (Mathf.Abs(crossProduct) < 0.01f) // Collinear (within tolerance)
-                    {
-                        float dotProduct = (intersect2D.x - segStart2D.x) * (segEnd2D.x - segStart2D.x) +
-                                           (intersect2D.y - segStart2D.y) * (segEnd2D.y - segStart2D.y);
-                        float squaredLength = (segEnd2D.x - segStart2D.x) * (segEnd2D.x - segStart2D.x) +
-                                              (segEnd2D.y - segStart2D.y) * (segEnd2D.y - segStart2D.y);
-
-                        if (dotProduct >= 0 && dotProduct <= squaredLength) // Within segment bounds
-                        {
-                            // Ensure it's not one of the segment's endpoints (already added)
-                            if (!uniqueNodes[segmentStart].Equals(uniqueNodes[intersectionPos]) &&
-                                !uniqueNodes[segmentEnd].Equals(uniqueNodes[intersectionPos]))
-                            {
-                                nodesOnSegment.Add(uniqueNodes[intersectionPos]);
-                            }
-                        }
-                    }
-                }
-
-                // Sort nodes along the segment
-                nodesOnSegment.Sort((n1, n2) =>
-                {
-                    float dist1 = Vector3.Distance(segmentStart, n1.position);
-                    float dist2 = Vector3.Distance(segmentStart, n2.position);
-                    return dist1.CompareTo(dist2);
-                });
-
-                // Create edges between sorted nodes
-                for (int k = 0; k < nodesOnSegment.Count - 1; k++)
-                {
-                    GraphNode nodeA = nodesOnSegment[k];
-                    GraphNode nodeB = nodesOnSegment[k + 1];
-
-                    // Avoid duplicate edges (e.g., if two roads share a segment)
-                    bool edgeExists = false;
-                    foreach (var existingEdge in nodeA.edges)
-                    {
-                        if ((existingEdge.startNode == nodeA && existingEdge.endNode == nodeB) ||
-                            (existingEdge.startNode == nodeB && existingEdge.endNode == nodeA))
-                        {
-                            edgeExists = true;
-                            break;
-                        }
-                    }
-
-                    if (!edgeExists)
-                    {
-                        GraphEdge newEdge = new GraphEdge(nodeA, nodeB);
-                        graphEdges.Add(newEdge);
-                        nodeA.edges.Add(newEdge);
-                        nodeB.edges.Add(newEdge); // Add to both ends
-                    }
-                }
-            }
-        }
-    }
-
-    private bool LineSegementsIntersect(Vector2 p1, Vector2 p2, Vector2 p3, Vector2 p4, out Vector2 intersection)
-    {
-        intersection = Vector2.zero;
-        float d = (p2.x - p1.x) * (p4.y - p3.y) - (p2.y - p1.y) * (p4.x - p3.x);
-
-        if (Mathf.Approximately(d, 0.0f))
-        {
-            return false;
-        }
-
-        float t = ((p1.x - p3.x) * (p4.y - p3.y) - (p1.y - p3.y) * (p4.x - p3.x)) / d;
-        float u = -((p1.x - p2.x) * (p1.y - p3.y) - (p1.y - p2.y) * (p1.x - p3.x)) / d;
-
-        if (t >= 0.0f && t <= 1.0f && u >= 0.0f && u <= 1.0f)
-        {
-            intersection.x = p1.x + t * (p2.x - p1.x);
-            intersection.y = p1.y + t * (p2.y - p1.y);
-            return true;
-        }
-
-        return false;
-    }
-    #endregion
-
-    #region Block Finding
-    public void FindCityBlocks()
-    {
-        cityBlocks.Clear();
-        if (graphNodes.Count == 0 || graphEdges.Count == 0)
-        {
-            Debug.LogWarning("Graph is empty. Build graph first.");
-            return;
-        }
-
-        // Keep track of traversed edges to avoid duplicate cycles
-        Dictionary<GraphEdge, bool> traversedEdges = new Dictionary<GraphEdge, bool>();
-        foreach (var edge in graphEdges)
-        {
-            traversedEdges[edge] = false;
-        }
-
-        foreach (var startEdge in graphEdges)
-        {
-            // Try to find a cycle starting from this edge
-            if (!traversedEdges[startEdge])
-            {
-                List<Vector3> currentCycle = new List<Vector3>();
-                GraphNode currentNode = startEdge.startNode;
-                GraphEdge currentEdge = startEdge;
-                GraphNode previousNode = startEdge.endNode; // To determine incoming direction
-
-                int maxIterations = 1000; // Safety break
-                for (int i = 0; i < maxIterations; i++)
-                {
-                    currentCycle.Add(currentNode.position);
-                    traversedEdges[currentEdge] = true; // Mark as traversed
-
-                    // Find the next edge using the "right-hand rule"
-                    GraphNode nextNode = (currentEdge.startNode == currentNode) ? currentEdge.endNode : currentEdge.startNode;
-                    
-                    // Sort edges around nextNode to find the "most clockwise" one
-                    List<GraphEdge> outgoingEdges = nextNode.edges.Where(e => e != currentEdge).ToList();
-                    if (outgoingEdges.Count == 0) break; // Dead end
-
-                    // Calculate incoming vector
-                    Vector2 incomingVec = new Vector2(currentNode.position.x - nextNode.position.x, currentNode.position.z - nextNode.position.z).normalized;
-
-                    GraphEdge nextBestEdge = null;
-                    float minAngle = 361f; // Greater than 360
-
-                    foreach (var outgoingEdge in outgoingEdges)
-                    {
-                        Vector3 otherNodePos = (outgoingEdge.startNode == nextNode) ? outgoingEdge.endNode.position : outgoingEdge.startNode.position;
-                        Vector2 outgoingVec = new Vector2(otherNodePos.x - nextNode.position.x, otherNodePos.z - nextNode.position.z).normalized;
-
-                        // Calculate angle from incoming to outgoing (clockwise)
-                        float angle = Vector2.SignedAngle(incomingVec, outgoingVec);
-                        if (angle < 0) angle += 360; // Normalize to 0-360
-
-                        // We want the smallest positive angle (most clockwise turn)
-                        if (angle < minAngle)
-                        {
-                            minAngle = angle;
-                            nextBestEdge = outgoingEdge;
-                        }
-                    }
-
-                    if (nextBestEdge == null) break; // Should not happen if graph is connected
-
-                    // Move to the next edge
-                    previousNode = currentNode;
-                    currentNode = nextNode;
-                    currentEdge = nextBestEdge;
-
-                    // Check if we completed a cycle
-                    if (currentNode == startEdge.startNode && currentEdge == startEdge)
-                    {
-                        // Found a cycle!
-                        cityBlocks.Add(currentCycle);
-                        break;
-                    }
-                }
-            }
+            DestroyImmediate(building);
         }
     }
     #endregion
