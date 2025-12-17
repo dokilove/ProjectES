@@ -19,14 +19,83 @@ public class TownGenerator : MonoBehaviour
     public Vector2 buildingRandomOffset = new Vector2(0, 5f);
     public Vector2 buildingRandomSpacing = new Vector2(0, 10f);
     public LayerMask terrainLayer; // Assign your terrain layer in the Inspector
-    public LayerMask roadLayer;    // Assign your road layer in the Inspector
-    public LayerMask buildingLayer; // Assign your building layer in the Inspector
 
     [Header("Building Rows")]
     public int buildingRowsPerSide = 1; // Number of rows on each side of the road
     public float rowSpacing = 5f;       // Spacing between building rows
 
+    [Header("Goal Settings")]
+    public GameObject goalMarkerPrefab;
+    public List<Vector3> goalPositions = new List<Vector3>();
+
+
     private const string BUILDING_CONTAINER_NAME = "[Generated Buildings]";
+    private const string GOAL_CONTAINER_NAME = "[Generated Goals]";
+
+    #region Public API
+
+    public void GenerateAll()
+    {
+        Debug.Log("Starting city generation...");
+        GenerateRoad();
+        GenerateBuildings();
+        GenerateGoals();
+        Debug.Log("City generation complete.");
+    }
+
+    public List<Vector3> GetPredefinedGoalPositions()
+    {
+        return goalPositions;
+    }
+
+    public Vector3 GetRandomRoadPosition()
+    {
+        if (roads == null || roads.Count == 0)
+        {
+            Debug.LogWarning("No roads available to find a random position.");
+            return Vector3.zero;
+        }
+
+        // Select a random road
+        Road randomRoad = roads[Random.Range(0, roads.Count)];
+        if (randomRoad.nodes.Count < 2)
+        {
+            Debug.LogWarning($"Selected road '{randomRoad.name}' has less than 2 nodes.");
+            return Vector3.zero;
+        }
+
+        // Select a random segment on that road
+        int randomSegmentIndex = Random.Range(0, randomRoad.nodes.Count - 1);
+        Vector3 p1 = randomRoad.nodes[randomSegmentIndex];
+        Vector3 p2 = randomRoad.nodes[randomSegmentIndex + 1];
+
+        // Select a random point along that segment
+        float randomT = Random.Range(0f, 1f);
+        return Vector3.Lerp(p1, p2, randomT);
+    }
+
+    public Bounds GetCityBounds()
+    {
+        Bounds bounds = new Bounds();
+        MeshFilter roadMeshFilter = GetComponent<MeshFilter>();
+        if (roadMeshFilter != null && roadMeshFilter.sharedMesh != null)
+        {
+            bounds = roadMeshFilter.sharedMesh.bounds;
+        }
+
+        Transform buildingContainer = transform.Find(BUILDING_CONTAINER_NAME);
+        if (buildingContainer != null)
+        {
+            Renderer[] buildingRenderers = buildingContainer.GetComponentsInChildren<Renderer>();
+            foreach (Renderer r in buildingRenderers)
+            {
+                bounds.Encapsulate(r.bounds);
+            }
+        }
+        return bounds;
+    }
+
+    #endregion
 
     #region Road Generation
     public void GenerateRoad()
@@ -98,6 +167,11 @@ public class TownGenerator : MonoBehaviour
             // Transform world points to local points for the mesh
             Vector3 p1 = transform.InverseTransformPoint(road.nodes[i]);
             Vector3 p2 = transform.InverseTransformPoint(road.nodes[i + 1]);
+
+            // Add a small Y-offset to prevent Z-fighting with the ground plane
+            p1.y += 0.001f;
+            p2.y += 0.001f;
+
             float segmentLength = Vector3.Distance(p1, p2);
 
             Vector3 forward = (p2 - p1).normalized;
@@ -133,6 +207,65 @@ public class TownGenerator : MonoBehaviour
         mesh.RecalculateNormals();
         mesh.RecalculateBounds();
         return mesh;
+    }
+    #endregion
+
+    #region Goal Generation
+    public void GenerateGoals()
+    {
+        ClearGoals();
+
+        if (goalPositions == null || goalPositions.Count == 0)
+        {
+            Debug.Log("No goal positions defined. Skipping goal generation.");
+            return;
+        }
+
+        GameObject goalContainer = new GameObject(GOAL_CONTAINER_NAME);
+        goalContainer.transform.SetParent(transform);
+
+        for (int i = 0; i < goalPositions.Count; i++)
+        {
+            Vector3 pos = goalPositions[i];
+            GameObject goalMarker;
+
+            if (goalMarkerPrefab != null)
+            {
+                goalMarker = Instantiate(goalMarkerPrefab, pos, Quaternion.identity);
+            }
+            else
+            {
+                // Create default primitive if no prefab is assigned
+                goalMarker = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                goalMarker.transform.position = pos + Vector3.up * 0.05f; // Adjust default primitive position
+                goalMarker.transform.localScale = new Vector3(10, 0.1f, 10); // Default size
+                // Use .sharedMaterial in editor scripts to avoid creating new material instances.
+                goalMarker.GetComponent<Renderer>().sharedMaterial.color = Color.red;
+            }
+
+            goalMarker.name = $"GoalMarker_{i}";
+            goalMarker.transform.SetParent(goalContainer.transform);
+
+            // Ensure the goal has a trigger collider and the correct tag
+            if (goalMarker.GetComponent<Collider>() == null)
+            {
+                goalMarker.AddComponent<CapsuleCollider>().isTrigger = true;
+            }
+            else
+            {
+                goalMarker.GetComponent<Collider>().isTrigger = true;
+            }
+            goalMarker.tag = "Goal"; // Assign a tag for easy finding at runtime
+        }
+    }
+
+    public void ClearGoals()
+    {
+        Transform existingContainer = transform.Find(GOAL_CONTAINER_NAME);
+        if (existingContainer != null)
+        {
+            DestroyImmediate(existingContainer.gameObject);
+        }
     }
     #endregion
 
@@ -256,7 +389,7 @@ public class TownGenerator : MonoBehaviour
 
         // Check for overlaps before placing the building
         // Check against roads and other buildings
-        if (Physics.CheckBox(buildingPosition, buildingHalfExtents, buildingRotation, roadLayer | buildingLayer))
+        if (Physics.CheckBox(buildingPosition, buildingHalfExtents, buildingRotation, LayerMask.GetMask("Road", "Building")))
         {
             // Overlap detected, do not place building here
             return 0f; // Indicate no building was placed
@@ -264,7 +397,7 @@ public class TownGenerator : MonoBehaviour
 
         // Raycast to find the actual ground height
         // Start raycast from above the building's estimated top
-        if (Physics.Raycast(buildingPosition + Vector3.up * buildingSize.y, Vector3.down, out RaycastHit hit, buildingSize.y * 2f + 1f, terrainLayer | roadLayer))
+        if (Physics.Raycast(buildingPosition + Vector3.up * buildingSize.y, Vector3.down, out RaycastHit hit, buildingSize.y * 2f + 1f, terrainLayer | LayerMask.GetMask("Road")))
         {
             buildingPosition.y = hit.point.y; // Place building on ground, assuming pivot is at bottom-center
         }
@@ -301,6 +434,8 @@ public class TownGenerator : MonoBehaviour
             allPlacedBuildings.Add(child.gameObject);
         }
 
+        int overlapMask = LayerMask.GetMask("Road", "Building");
+
         foreach (GameObject building in allPlacedBuildings)
         {
             if (building == null) continue; // Might have been destroyed by a previous check
@@ -309,27 +444,20 @@ public class TownGenerator : MonoBehaviour
             if (buildingCollider == null) continue;
 
             // Check for overlaps with roads OR other buildings
-            // Exclude the building itself from the overlap check
-            Collider[] overlaps = Physics.OverlapBox(building.transform.position, buildingCollider.bounds.extents, building.transform.rotation, roadLayer | buildingLayer);
+            Collider[] overlaps = Physics.OverlapBox(building.transform.position, buildingCollider.bounds.extents, building.transform.rotation, overlapMask);
             
-            bool isOverlapping = false;
+            bool isOverlappingWithOtherObject = false;
             foreach (Collider overlapCollider in overlaps)
             {
-                // If it overlaps with a road, mark for destruction
-                if (((1 << overlapCollider.gameObject.layer) & roadLayer) != 0)
+                // If the overlapping collider is not part of the building itself, then it's a real overlap.
+                if (overlapCollider.gameObject != building)
                 {
-                    isOverlapping = true;
-                    break;
-                }
-                // If it overlaps with another building (and it's not itself)
-                if (((1 << overlapCollider.gameObject.layer) & buildingLayer) != 0 && overlapCollider.gameObject != building)
-                {
-                    isOverlapping = true;
+                    isOverlappingWithOtherObject = true;
                     break;
                 }
             }
 
-            if (isOverlapping)
+            if (isOverlappingWithOtherObject)
             {
                 buildingsToDestroy.Add(building);
             }

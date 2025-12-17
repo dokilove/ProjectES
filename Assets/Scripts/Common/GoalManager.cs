@@ -12,11 +12,7 @@ public class GoalManager : MonoBehaviour
     [Header("Core Setup")]
     [Tooltip("The player's vehicle transform.")]
     public Transform player;
-    [Tooltip("A BoxCollider defining the area where goals can spawn.")]
-    public BoxCollider spawnArea;
-    [Tooltip("Reference to the CityGenerator script.")]
-    public CityGenerator cityGenerator;
-
+    
     [Header("Goal Properties")]
     [Tooltip("How close the player needs to be to the goal to trigger the timer.")]
     public float goalRadius = 5f;
@@ -25,20 +21,11 @@ public class GoalManager : MonoBehaviour
     [Tooltip("Maximum time in seconds the player must stay at the goal.")]
     public float maxDwellTime = 5f;
 
-    [Header("Spawning Behavior")]
-    [Tooltip("Number of goals to spawn at the start of the stage.")]
-    public int initialGoalCount = 5;
-    [Tooltip("Minimum distance a goal can spawn from the player's start position.")]
-    public float minSpawnDistanceFromPlayer = 15f;
-    [Tooltip("Minimum distance a goal can spawn from other goals.")]
-    public float minSpawnDistanceFromOtherGoals = 10f;
-    [Tooltip("How many times to try finding a valid spawn position before giving up.")]
-    private int maxSpawnAttempts = 30;
-
     private List<Goal> activeGoals = new List<Goal>();
     private bool stageCleared = false;
     private bool isGameOver = false;
 
+    // The Goal class now primarily holds state, not creation parameters.
     public class Goal
     {
         public GameObject marker;
@@ -62,32 +49,67 @@ public class GoalManager : MonoBehaviour
         UnityEngine.Random.InitState((int)System.DateTime.Now.Ticks);
     }
 
-    void OnEnable()
+    void Start()
     {
-        CityGenerator.OnCityGenerated += Initialize;
+        InitializeGoals();
     }
 
-    void OnDisable()
+    void InitializeGoals()
     {
-        CityGenerator.OnCityGenerated -= Initialize;
-    }
-
-    void Initialize()
-    {
-        if (player == null || spawnArea == null)
+        if (player == null)
         {
-            Debug.LogError("Player or SpawnArea is not assigned in the GoalManager! Please set them up in the Inspector.");
+            Debug.LogError("Player is not assigned in the GoalManager! Please set it up in the Inspector.");
             this.enabled = false;
             return;
         }
 
-        SpawnInitialGoals();
+        // Find all GameObjects in the scene that are tagged as "Goal"
+        GameObject[] goalMarkers = GameObject.FindGameObjectsWithTag("Goal");
+        
+        if (goalMarkers.Length == 0)
+        {
+            Debug.LogWarning("No GameObjects with tag 'Goal' found in the scene. The stage may end immediately.");
+        }
+
+        Debug.Log($"Found and initializing {goalMarkers.Length} goals.");
+
+        foreach (GameObject marker in goalMarkers)
+        {
+            // Create the runtime Goal data object
+            Goal newGoal = new Goal
+            {
+                marker = marker,
+                position = marker.transform.position,
+                requiredDwellTime = UnityEngine.Random.Range(minDwellTime, maxDwellTime),
+                dwellTimer = 0f,
+                isPlayerInside = false
+            };
+
+            // Add a trigger script to the marker and link it to our data object
+            GoalTrigger trigger = marker.AddComponent<GoalTrigger>();
+            trigger.goal = newGoal;
+
+            // Optional: Adjust collider properties at runtime if needed
+            Collider col = marker.GetComponent<Collider>();
+            if (col != null)
+            {
+                col.isTrigger = true;
+                if (col is CapsuleCollider capsule)
+                {
+                    capsule.radius = goalRadius;
+                }
+                else if (col is SphereCollider sphere)
+                {
+                    sphere.radius = goalRadius;
+                }
+            }
+
+            activeGoals.Add(newGoal);
+        }
+
+        CheckForStageClear(); // Check immediately in case there are no goals
     }
 
-    void Start()
-    {
-        // Initialization is now handled by the OnCityGenerated event
-    }
 
     void Update()
     {
@@ -101,11 +123,16 @@ public class GoalManager : MonoBehaviour
             {
                 goal.dwellTimer += Time.deltaTime;
                 float progress = goal.dwellTimer / goal.requiredDwellTime;
-                goal.marker.GetComponent<Renderer>().material.color = Color.Lerp(Color.red, Color.green, progress);
+                
+                // Ensure marker and renderer still exist
+                if(goal.marker != null && goal.marker.GetComponent<Renderer>() != null)
+                {
+                    goal.marker.GetComponent<Renderer>().material.color = Color.Lerp(Color.red, Color.green, progress);
+                }
 
                 if (goal.dwellTimer >= goal.requiredDwellTime)
                 {
-                    Destroy(goal.marker);
+                    if(goal.marker != null) Destroy(goal.marker);
                     activeGoals.RemoveAt(i);
                     CheckForStageClear();
                 }
@@ -115,7 +142,10 @@ public class GoalManager : MonoBehaviour
                 if (goal.dwellTimer > 0)
                 {
                     goal.dwellTimer = 0f;
-                    goal.marker.GetComponent<Renderer>().material.color = Color.red;
+                    if(goal.marker != null && goal.marker.GetComponent<Renderer>() != null)
+                    {
+                        goal.marker.GetComponent<Renderer>().material.color = Color.red;
+                    }
                 }
             }
         }
@@ -151,84 +181,6 @@ public class GoalManager : MonoBehaviour
         Debug.Log("Game Over triggered!");
     }
 
-    void SpawnInitialGoals()
-    {
-        for (int i = 0; i < initialGoalCount; i++)
-        {
-            SpawnNewGoal();
-        }
-    }
-
-    void SpawnNewGoal()
-    {
-        Vector3 goalPosition = Vector3.zero;
-        bool positionFound = false;
-
-        // CityGenerator로부터 정확한 도시 경계를 받아옵니다.
-        Bounds cityBounds = (cityGenerator != null) ? cityGenerator.GetCityBounds() : spawnArea.bounds;
-
-        for (int i = 0; i < maxSpawnAttempts; i++)
-        {
-            Vector3 randomPoint = new Vector3(
-                UnityEngine.Random.Range(cityBounds.min.x, cityBounds.max.x),
-                cityBounds.center.y,
-                UnityEngine.Random.Range(cityBounds.min.z, cityBounds.max.z)
-            );
-
-            // NavMesh.SamplePosition을 사용해 가장 가까운 NavMesh 위의 점을 찾습니다.
-            if (NavMesh.SamplePosition(randomPoint, out NavMeshHit navHit, 100f, NavMesh.AllAreas))
-            {
-                Vector3 potentialPosition = navHit.position;
-
-                if (Vector3.Distance(player.position, potentialPosition) < minSpawnDistanceFromPlayer)
-                {
-                    continue;
-                }
-
-                bool tooCloseToAnotherGoal = activeGoals.Any(g => Vector3.Distance(g.position, potentialPosition) < minSpawnDistanceFromOtherGoals);
-                if (tooCloseToAnotherGoal)
-                {
-                    continue;
-                }
-
-                goalPosition = potentialPosition;
-                positionFound = true;
-                break;
-            }
-        }
-
-        if (!positionFound)
-        {
-            Debug.LogWarning($"Could not find a valid spawn position on NavMesh for goal #{activeGoals.Count + 1} after {maxSpawnAttempts} attempts.");
-            return;
-        }
-
-        GameObject goalMarker = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-        goalMarker.name = "GoalMarker_" + activeGoals.Count;
-        
-        CapsuleCollider collider = goalMarker.GetComponent<CapsuleCollider>();
-        collider.isTrigger = true;
-        collider.radius = goalRadius;
-
-        goalMarker.transform.localScale = new Vector3(goalRadius * 2, 0.1f, goalRadius * 2);
-        goalMarker.transform.position = goalPosition + Vector3.up * 0.05f;
-        goalMarker.GetComponent<Renderer>().material.color = Color.red;
-
-        Goal newGoal = new Goal
-        {
-            marker = goalMarker,
-            position = goalPosition,
-            requiredDwellTime = UnityEngine.Random.Range(minDwellTime, maxDwellTime),
-            dwellTimer = 0f,
-            isPlayerInside = false
-        };
-
-        activeGoals.Add(newGoal);
-
-        GoalTrigger trigger = goalMarker.AddComponent<GoalTrigger>();
-        trigger.goal = newGoal;
-    }
-
     void CheckForStageClear()
     {
         if (activeGoals.Count == 0)
@@ -252,7 +204,7 @@ public class GoalTrigger : MonoBehaviour
     {
         if (other.CompareTag("Player"))
         {
-            goal.isPlayerInside = true;
+            if (goal != null) goal.isPlayerInside = true;
         }
     }
 
@@ -260,7 +212,8 @@ public class GoalTrigger : MonoBehaviour
     {
         if (other.CompareTag("Player"))
         {
-            goal.isPlayerInside = false;
+            if (goal != null) goal.isPlayerInside = false;
         }
     }
 }
+
