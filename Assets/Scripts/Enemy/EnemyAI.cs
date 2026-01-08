@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.AI;
 
+[RequireComponent(typeof(NavMeshAgent))]
 public class EnemyAI : MonoBehaviour
 {
     public Transform target;
@@ -30,6 +31,7 @@ public class EnemyAI : MonoBehaviour
     public LayerMask groundLayer;
 
     private NavMeshAgent agent;
+    private TownGenerator townGenerator;
 
     // Base FOV
     private Mesh baseFovMesh;
@@ -40,8 +42,8 @@ public class EnemyAI : MonoBehaviour
     
     private float detectionProgress; // 0 = not detected, 1 = fully detected
 
-    public enum EnemyState { Idle, Detecting, Chasing }
-    private EnemyState currentState = EnemyState.Idle;
+    public enum EnemyState { Patrol, Detecting, Chasing }
+    private EnemyState currentState = EnemyState.Patrol;
     
     private Vector3 lastKnownPlayerPosition;
     public float chaseDurationAfterLostSight = 3f;
@@ -49,20 +51,23 @@ public class EnemyAI : MonoBehaviour
 
     void OnEnable()
     {
-        CityGenerator.OnCityGenerated += PlaceOnGround;
+        // This event is no longer needed as we will place the agent using NavMesh
+        // CityGenerator.OnCityGenerated += PlaceOnGround;
     }
 
     void OnDisable()
     {
-        CityGenerator.OnCityGenerated -= PlaceOnGround;
+        // CityGenerator.OnCityGenerated -= PlaceOnGround;
     }
 
     void Start()
     {
         agent = GetComponent<NavMeshAgent>();
-        if (agent == null)
+        townGenerator = FindObjectOfType<TownGenerator>();
+
+        if (townGenerator == null)
         {
-            Debug.LogError("EnemyAI: NavMeshAgent component not found.", this);
+            Debug.LogError("EnemyAI: TownGenerator not found in the scene!", this);
             enabled = false;
             return;
         }
@@ -72,6 +77,16 @@ public class EnemyAI : MonoBehaviour
 
         agent.speed = moveSpeed;
         FindPlayer();
+        
+        // Check if the agent is placed on a valid NavMesh area in the editor.
+        if (!agent.isOnNavMesh)
+        {
+            Debug.LogWarning($"Enemy '{gameObject.name}' is not placed on a baked NavMesh. It will not be able to move. Please place it on a valid NavMesh area in the Scene Editor.", this);
+            return; // Stop further execution if it cannot patrol.
+        }
+
+        // Start patrolling from the current position.
+        GoToNewPatrolPoint();
     }
 
     void Update()
@@ -81,18 +96,104 @@ public class EnemyAI : MonoBehaviour
             FindPlayer();
             if (target == null)
             {
-                // If still no target, clear meshes and do nothing
-                if (baseFovMesh != null) baseFovMesh.Clear();
-                if (detectionFovMesh != null) detectionFovMesh.Clear();
-                return;
+                // If still no target, just keep patrolling
+                if (currentState != EnemyState.Patrol) currentState = EnemyState.Patrol;
             }
         }
 
-        bool playerInFOV = CheckFOV();
+        bool playerInFOV = target != null && CheckFOV();
         HandleStateMachine(playerInFOV);
 
         DrawBaseFOVMesh();
         DrawDetectionFOVMesh();
+    }
+
+    private void HandleStateMachine(bool playerInFOV)
+    {
+        switch (currentState)
+        {
+            case EnemyState.Patrol:
+                // Check if we've reached the destination
+                if (!agent.pathPending && agent.remainingDistance < agent.stoppingDistance)
+                {
+                    GoToNewPatrolPoint();
+                }
+
+                if (playerInFOV)
+                {
+                    currentState = EnemyState.Detecting;
+                    Debug.Log("Enemy: Player spotted, beginning detection...");
+                    lastKnownPlayerPosition = target.position;
+                }
+                break;
+
+            case EnemyState.Detecting:
+                if (playerInFOV)
+                {
+                    lastKnownPlayerPosition = target.position;
+                    detectionProgress = Mathf.Min(1, detectionProgress + (1 / detectionDuration) * Time.deltaTime);
+
+                    float currentDetectionRadius = viewRadius * detectionProgress;
+                    if (Vector3.Distance(transform.position, target.position) <= currentDetectionRadius)
+                    {
+                        currentState = EnemyState.Chasing;
+                        lastKnownPlayerPosition = target.position;
+                        chaseTimer = chaseDurationAfterLostSight;
+                        Debug.Log("Enemy: Detection complete, starting chase!");
+                    }
+                }
+                else
+                {
+                    // If player is lost during detection, go back to patrol and decay detection
+                    currentState = EnemyState.Patrol;
+                    detectionProgress = Mathf.Max(0, detectionProgress - (1 / detectionDuration) * Time.deltaTime);
+                    Debug.Log("Enemy: Player lost during detection, returning to patrol.");
+                }
+                break;
+
+            case EnemyState.Chasing:
+                if (neverStopChasing || playerInFOV)
+                {
+                    lastKnownPlayerPosition = target.position;
+                    chaseTimer = chaseDurationAfterLostSight;
+                    if (agent.isOnNavMesh) agent.SetDestination(target.position);
+                    RotateTowardsPosition(target.position);
+                }
+                else
+                {
+                    chaseTimer -= Time.deltaTime;
+                    if (chaseTimer > 0)
+                    {
+                        if (agent.isOnNavMesh) agent.SetDestination(lastKnownPlayerPosition);
+                        RotateTowardsPosition(lastKnownPlayerPosition);
+                    }
+                    else
+                    {
+                        currentState = EnemyState.Patrol;
+                        GoToNewPatrolPoint(); // Start patrolling again
+                        Debug.Log("Enemy: Lost player, returning to patrol.");
+                    }
+                }
+                break;
+        }
+    }
+
+    private void GoToNewPatrolPoint()
+    {
+        if (townGenerator == null || !agent.isOnNavMesh) return;
+
+        Vector3 randomPoint = townGenerator.GetRandomRoadPosition();
+        
+        // Find the nearest point on the NavMesh to the random road position
+        if (NavMesh.SamplePosition(randomPoint, out NavMeshHit hit, 10.0f, NavMesh.AllAreas))
+        {
+            agent.SetDestination(hit.position);
+        }
+        else
+        {
+            Debug.LogWarning("Could not find a valid NavMesh point near the random road position. Trying again.", this);
+            // Optionally, try again or find another point
+        }
     }
 
     private void SetupBaseFOV()
@@ -143,86 +244,6 @@ public class EnemyAI : MonoBehaviour
         }
     }
 
-    private void HandleStateMachine(bool playerInFOV)
-    {
-        switch (currentState)
-        {
-            case EnemyState.Idle:
-                if (playerInFOV)
-                {
-                    currentState = EnemyState.Detecting;
-                    Debug.Log("Enemy: Player spotted, beginning detection...");
-                    lastKnownPlayerPosition = target.position;
-                }
-                else
-                {
-                    // Slowly decrease detection progress if player is not in sight
-                    detectionProgress = Mathf.Max(0, detectionProgress - (1 / detectionDuration) * Time.deltaTime);
-                }
-                break;
-
-            case EnemyState.Detecting:
-                if (playerInFOV)
-                {
-                    lastKnownPlayerPosition = target.position;
-                    // Increase detection progress
-                    detectionProgress = Mathf.Min(1, detectionProgress + (1 / detectionDuration) * Time.deltaTime);
-
-                    // Check if the expanding detection radius has reached the player
-                    float currentDetectionRadius = viewRadius * detectionProgress;
-                    if (Vector3.Distance(transform.position, target.position) <= currentDetectionRadius)
-                    {
-                        currentState = EnemyState.Chasing;
-                        lastKnownPlayerPosition = target.position;
-                        chaseTimer = chaseDurationAfterLostSight;
-                        Debug.Log("Enemy: Detection complete, starting chase!");
-                    }
-                }
-                else
-                {
-                    // If player is lost during detection, go back to idle to handle decay
-                    currentState = EnemyState.Idle;
-                    Debug.Log("Enemy: Player lost during detection, returning to idle.");
-                }
-                break;
-
-            case EnemyState.Chasing:
-                // 'neverStopChasing' 모드이거나 플레이어가 시야에 있으면, 항상 최신 위치로 추적
-                if (neverStopChasing || playerInFOV)
-                {
-                    lastKnownPlayerPosition = target.position;
-                    chaseTimer = chaseDurationAfterLostSight; // 타이머 리셋 (기존 로직을 위해)
-                    if (agent.isOnNavMesh) agent.SetDestination(target.position);
-
-                    // Smoothly rotate to face the player
-                    RotateTowardsPosition(target.position);
-                }
-                else // 'neverStopChasing'가 아니고, 플레이어가 시야에 없을 때만 기존 로직 실행
-                {
-                    chaseTimer -= Time.deltaTime;
-                    if (chaseTimer > 0)
-                    {
-                        // 시야를 놓쳤지만 아직 추적 유예 시간일 때
-                        if (agent.isOnNavMesh) agent.SetDestination(lastKnownPlayerPosition);
-                        RotateTowardsPosition(lastKnownPlayerPosition);
-                    }
-                    else
-                    {
-                        // 추적 실패, Idle 상태로 복귀
-                        currentState = EnemyState.Idle;
-                        if (agent.isOnNavMesh) agent.ResetPath();
-                        Debug.Log("Enemy: Lost player, returning to idle.");
-                    }
-                }
-                break;
-        }
-
-        if (!playerInFOV && currentState != EnemyState.Chasing)
-        {
-            TryRotateTowardPlayerWhenNearby();
-        }
-    }
-
     private bool CheckFOV()
     {
         if (target == null) return false;
@@ -267,17 +288,7 @@ public class EnemyAI : MonoBehaviour
         Vector3[] vertices = new Vector3[vertexCount];
         int[] triangles = new int[segments * 3];
 
-        // Project the center vertex of the FOV fan onto the ground.
-        Vector3 centerVertex = Vector3.zero;
-        if (Physics.Raycast(transform.position + Vector3.up, Vector3.down, out RaycastHit centerHit, 10f, groundLayer))
-        {
-            centerVertex = transform.InverseTransformPoint(centerHit.point + Vector3.up * 0.1f);
-        }
-        else
-        {
-            // Fallback if no ground is found directly below
-            centerVertex = Vector3.up * 0.1f;
-        }
+        Vector3 centerVertex = Vector3.up * 0.1f;
         vertices[0] = centerVertex;
 
         float angleIncrement = viewAngle / segments;
@@ -286,17 +297,7 @@ public class EnemyAI : MonoBehaviour
         for (int i = 0; i <= segments; i++)
         {
             Vector3 direction = Quaternion.Euler(0, currentAngle, 0) * transform.forward;
-            Vector3 worldPoint = transform.position + direction * radius;
-
-            if (Physics.Raycast(worldPoint + Vector3.up * 5f, Vector3.down, out RaycastHit hit, 10f, groundLayer))
-            {
-                vertices[i + 1] = transform.InverseTransformPoint(hit.point + Vector3.up * 0.1f);
-            }
-            else
-            {
-                // If raycast fails, use a point relative to the center vertex
-                vertices[i + 1] = centerVertex + transform.InverseTransformDirection(direction * radius);
-            }
+            vertices[i + 1] = centerVertex + direction * radius;
             currentAngle += angleIncrement;
         }
 
@@ -327,23 +328,7 @@ public class EnemyAI : MonoBehaviour
         Quaternion lookRotation = Quaternion.LookRotation(flatDirection);
         transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, rotationSpeed * Time.deltaTime);
     }
-
-    private void TryRotateTowardPlayerWhenNearby()
-    {
-        if (target == null)
-        {
-            return;
-        }
-
-        float distanceToTarget = Vector3.Distance(transform.position, target.position);
-        if (distanceToTarget > viewRadius)
-        {
-            return;
-        }
-
-        RotateTowardsPosition(target.position);
-    }
-
+    
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.yellow;
@@ -367,33 +352,9 @@ public class EnemyAI : MonoBehaviour
     {
         if (collision.gameObject.CompareTag("Player"))
         {
-            GoalManager.Instance.TriggerGameOver();
-        }
-    }
-
-    private void PlaceOnGround()
-    {
-        // Start the ray from high above the enemy's current position
-        Vector3 rayStart = new Vector3(transform.position.x, 1000f, transform.position.z);
-
-        if (Physics.Raycast(rayStart, Vector3.down, out RaycastHit hit, 2000f, groundLayer))
-        {
-            // Position the enemy on the ground at the hit point.
-            // We also need to account for the NavMeshAgent's base offset if any.
-            NavMeshAgent agent = GetComponent<NavMeshAgent>();
-            if (agent != null)
-            {
-                transform.position = hit.point + Vector3.up * agent.baseOffset;
-            }
-            else
-            {
-                transform.position = hit.point;
-            }
-            Debug.Log($"Enemy '{gameObject.name}' placed on ground at {transform.position}", this);
-        }
-        else
-        {
-            Debug.LogWarning($"PlaceOnGround: Could not find ground beneath enemy '{gameObject.name}'. Check ground layer and distance.", this);
+            // Assuming a GoalManager exists to handle game over
+            // GoalManager.Instance.TriggerGameOver();
+            Debug.Log("Game Over!");
         }
     }
 }

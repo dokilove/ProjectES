@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.IO;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer), typeof(MeshCollider))]
 public class TownGenerator : MonoBehaviour
@@ -139,10 +142,17 @@ public class TownGenerator : MonoBehaviour
 
         // Automatically assign the "Road" layer to this GameObject
         gameObject.layer = LayerMask.NameToLayer("Road");
+
+#if UNITY_EDITOR
+        // Mark the road object as Navigation Static for NavMesh baking
+        GameObjectUtility.SetStaticEditorFlags(gameObject, StaticEditorFlags.NavigationStatic);
+#endif
     }
 
     public void ClearRoads()
     {
+        roads.Clear(); // Clear the underlying data list
+
         MeshFilter meshFilter = GetComponent<MeshFilter>();
         if (meshFilter != null)
         {
@@ -213,8 +223,14 @@ public class TownGenerator : MonoBehaviour
     #region Goal Generation
     public void GenerateGoals()
     {
-        ClearGoals();
+        // First, remove any previously generated goal objects to avoid duplication
+        Transform existingContainer = transform.Find(GOAL_CONTAINER_NAME);
+        if (existingContainer != null)
+        {
+            DestroyImmediate(existingContainer.gameObject);
+        }
 
+        // Now, generate new ones based on the data in the list
         if (goalPositions == null || goalPositions.Count == 0)
         {
             Debug.Log("No goal positions defined. Skipping goal generation.");
@@ -261,12 +277,59 @@ public class TownGenerator : MonoBehaviour
 
     public void ClearGoals()
     {
+        goalPositions.Clear(); // Clear the underlying data list
+
         Transform existingContainer = transform.Find(GOAL_CONTAINER_NAME);
         if (existingContainer != null)
         {
             DestroyImmediate(existingContainer.gameObject);
         }
     }
+    #endregion
+
+    #region SaveLoad
+
+    public void SaveCity(string path)
+    {
+        try
+        {
+            CityData data = new CityData(this);
+            string json = JsonUtility.ToJson(data, true);
+            File.WriteAllText(path, json);
+            Debug.Log($"City data successfully saved to {path}");
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"Failed to save city data: {e.Message}");
+        }
+    }
+
+    public void LoadCity(string path)
+    {
+        try
+        {
+            if (!File.Exists(path))
+            {
+                Debug.LogError($"File not found at {path}");
+                return;
+            }
+
+            string json = File.ReadAllText(path);
+            CityData data = JsonUtility.FromJson<CityData>(json);
+
+            roads = data.roads;
+            goalPositions = data.goalPositions;
+
+            // Regenerate the city visuals from the loaded data
+            GenerateAll();
+            Debug.Log($"City data successfully loaded from {path}");
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"Failed to load city data: {e.Message}");
+        }
+    }
+
     #endregion
 
     #region Building Generation
@@ -420,6 +483,11 @@ public class TownGenerator : MonoBehaviour
         {
             newBuilding.layer = buildingLayerIndex; // Assign building to Building layer
         }
+
+#if UNITY_EDITOR
+        // Mark the new building as Navigation Static for NavMesh baking
+        GameObjectUtility.SetStaticEditorFlags(newBuilding, StaticEditorFlags.NavigationStatic);
+#endif
         
         return buildingSize.z; // Return the length of the building along the road direction
     }

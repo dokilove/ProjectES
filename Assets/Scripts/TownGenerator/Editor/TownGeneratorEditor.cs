@@ -80,7 +80,7 @@ public class TownGeneratorEditor : Editor
         if (GUILayout.Button("Clear All Goals"))
         {
             Undo.RecordObject(generator, "Clear All Goals");
-            generator.goalPositions.Clear();
+            generator.ClearGoals(); // Call the centralized method
             EditorUtility.SetDirty(generator);
             SceneView.RepaintAll();
         }
@@ -104,7 +104,10 @@ public class TownGeneratorEditor : Editor
 
         if (GUILayout.Button("Clear Roads"))
         {
+            Undo.RecordObject(generator, "Clear Roads");
             generator.ClearRoads();
+            EditorUtility.SetDirty(generator);
+            SceneView.RepaintAll();
         }
         EditorGUILayout.EndHorizontal();
 
@@ -128,9 +131,40 @@ public class TownGeneratorEditor : Editor
 
         if (GUILayout.Button("Clear Goals"))
         {
+            Undo.RecordObject(generator, "Clear Goals");
             generator.ClearGoals();
+            EditorUtility.SetDirty(generator);
+            SceneView.RepaintAll();
         }
         EditorGUILayout.EndHorizontal();
+
+        EditorGUILayout.Space(10);
+
+        // --- Save/Load Buttons ---
+        EditorGUILayout.LabelField("Save & Load", EditorStyles.boldLabel);
+        EditorGUILayout.BeginHorizontal();
+        if (GUILayout.Button("Save City"))
+        {
+            string path = EditorUtility.SaveFilePanel("Save City Data", Application.dataPath, "CityData", "json");
+            if (!string.IsNullOrEmpty(path))
+            {
+                generator.SaveCity(path);
+            }
+        }
+
+        if (GUILayout.Button("Load City"))
+        {
+            string path = EditorUtility.OpenFilePanel("Load City Data", Application.dataPath, "json");
+            if (!string.IsNullOrEmpty(path))
+            {
+                Undo.RecordObject(generator, "Load City");
+                generator.LoadCity(path);
+                EditorUtility.SetDirty(generator);
+                SceneView.RepaintAll();
+            }
+        }
+        EditorGUILayout.EndHorizontal();
+
 
         EditorGUILayout.Space();
         EditorGUILayout.LabelField("Advanced", EditorStyles.boldLabel);
@@ -187,7 +221,13 @@ public class TownGeneratorEditor : Editor
         }
         else
         {
-            // Draw all roads, with special drawing for the selected one
+            // Handle input first to ensure it's not consumed by other controls
+            if (selectedRoadIndex != -1 && selectedRoadIndex < generator.roads.Count)
+            {
+                HandleSceneInput(generator.roads[selectedRoadIndex], generator, e);
+            }
+
+            // Then, draw all roads, with special drawing for the selected one
             for (int i = 0; i < generator.roads.Count; i++)
             {
                 if (i == selectedRoadIndex)
@@ -198,12 +238,6 @@ public class TownGeneratorEditor : Editor
                 {
                     DrawRoadAsSimpleLines(generator.roads[i]);
                 }
-            }
-
-            // Handle input only if a road is selected
-            if (selectedRoadIndex != -1 && selectedRoadIndex < generator.roads.Count)
-            {
-                HandleSceneInput(generator.roads[selectedRoadIndex], generator, e);
             }
         }
     }
@@ -324,15 +358,17 @@ public class TownGeneratorEditor : Editor
         if (e.type == EventType.MouseDown && e.button == 0 && e.control)
         {
             int nodeToDelete = -1;
-            float minDistance = 15f;
+            float minDistance = 20f; // Increased for better usability
+            float closestDistance = float.MaxValue;
 
+            // Find the node CLOSEST to the mouse click, not just the first one in range
             for (int i = 0; i < road.nodes.Count; i++)
             {
                 float dist = Vector2.Distance(e.mousePosition, HandleUtility.WorldToGUIPoint(road.nodes[i]));
-                if (dist < minDistance)
+                if (dist < minDistance && dist < closestDistance)
                 {
+                    closestDistance = dist;
                     nodeToDelete = i;
-                    break;
                 }
             }
 
