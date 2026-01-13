@@ -227,7 +227,7 @@ public class TownGenerator : MonoBehaviour
         Transform existingContainer = transform.Find(GOAL_CONTAINER_NAME);
         if (existingContainer != null)
         {
-            DestroyImmediate(existingContainer.gameObject);
+            Undo.DestroyObjectImmediate(existingContainer.gameObject);
         }
 
         // Now, generate new ones based on the data in the list
@@ -282,7 +282,7 @@ public class TownGenerator : MonoBehaviour
         Transform existingContainer = transform.Find(GOAL_CONTAINER_NAME);
         if (existingContainer != null)
         {
-            DestroyImmediate(existingContainer.gameObject);
+            Undo.DestroyObjectImmediate(existingContainer.gameObject);
         }
     }
     #endregion
@@ -293,6 +293,7 @@ public class TownGenerator : MonoBehaviour
     {
         try
         {
+            // The constructor of CityData now handles gathering all necessary data, including buildings.
             CityData data = new CityData(this);
             string json = JsonUtility.ToJson(data, true);
             File.WriteAllText(path, json);
@@ -317,11 +318,26 @@ public class TownGenerator : MonoBehaviour
             string json = File.ReadAllText(path);
             CityData data = JsonUtility.FromJson<CityData>(json);
 
+            // Restore data from the loaded file
             roads = data.roads;
             goalPositions = data.goalPositions;
 
-            // Regenerate the city visuals from the loaded data
-            GenerateAll();
+            // Regenerate core components from data
+            GenerateRoad();
+            GenerateGoals();
+
+            // Check if there is building data in the save file
+            if (data.buildings != null && data.buildings.Count > 0)
+            {
+                // If yes, spawn buildings from the saved data
+                SpawnBuildingsFromData(data.buildings);
+            }
+            else
+            {
+                // If no (e.g., an old save file), generate them procedurally
+                GenerateBuildings();
+            }
+
             Debug.Log($"City data successfully loaded from {path}");
         }
         catch (System.Exception e)
@@ -333,6 +349,64 @@ public class TownGenerator : MonoBehaviour
     #endregion
 
     #region Building Generation
+
+    /// <summary>
+    /// Spawns buildings from a list of saved BuildingData.
+    /// </summary>
+    private void SpawnBuildingsFromData(List<BuildingData> buildingDataList)
+    {
+        ClearBuildings();
+
+        if (buildingPrefabs == null || buildingPrefabs.Length == 0)
+        {
+            Debug.LogWarning("Building prefabs array is empty. Cannot spawn buildings from data.");
+            return;
+        }
+
+        GameObject buildingContainer = new GameObject(BUILDING_CONTAINER_NAME);
+        buildingContainer.transform.SetParent(transform);
+
+        // Create a lookup dictionary for quick prefab access
+        Dictionary<string, GameObject> prefabDict = new Dictionary<string, GameObject>();
+        foreach (var prefab in buildingPrefabs)
+        {
+            if (prefab != null && !prefabDict.ContainsKey(prefab.name))
+            {
+                prefabDict.Add(prefab.name, prefab);
+            }
+        }
+
+        foreach (var buildingData in buildingDataList)
+        {
+            if (prefabDict.TryGetValue(buildingData.prefabName, out GameObject prefabToSpawn))
+            {
+                // Instantiate the building with saved position, rotation, and scale
+                GameObject newBuilding = Instantiate(prefabToSpawn, buildingData.position, buildingData.rotation);
+                newBuilding.transform.localScale = buildingData.scale;
+                newBuilding.transform.SetParent(buildingContainer.transform);
+
+                // Add an identifier to the building for robust saving
+                BuildingIdentifier identifier = newBuilding.AddComponent<BuildingIdentifier>();
+                identifier.prefabName = prefabToSpawn.name;
+
+                // Assign layer and static flags as done in procedural generation
+                int buildingLayerIndex = LayerMask.NameToLayer("Building");
+                if (buildingLayerIndex != -1)
+                {
+                    newBuilding.layer = buildingLayerIndex;
+                }
+
+#if UNITY_EDITOR
+                GameObjectUtility.SetStaticEditorFlags(newBuilding, StaticEditorFlags.NavigationStatic);
+#endif
+            }
+            else
+            {
+                Debug.LogWarning($"Prefab '{buildingData.prefabName}' not found in the TownGenerator's buildingPrefabs list. Skipping.");
+            }
+        }
+    }
+
     public void GenerateBuildings()
     {
         ClearBuildings();
@@ -405,7 +479,7 @@ public class TownGenerator : MonoBehaviour
         Transform existingContainer = transform.Find(BUILDING_CONTAINER_NAME);
         if (existingContainer != null)
         {
-            DestroyImmediate(existingContainer.gameObject);
+            Undo.DestroyObjectImmediate(existingContainer.gameObject);
         }
     }
 
@@ -472,6 +546,10 @@ public class TownGenerator : MonoBehaviour
 
         GameObject newBuilding = Instantiate(prefab, buildingPosition, buildingRotation);
         newBuilding.transform.SetParent(parent);
+
+        // Add an identifier to the building for robust saving
+        BuildingIdentifier identifier = newBuilding.AddComponent<BuildingIdentifier>();
+        identifier.prefabName = prefab.name;
         
         int buildingLayerIndex = LayerMask.NameToLayer("Building");
         if (buildingLayerIndex == -1)

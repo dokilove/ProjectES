@@ -3,6 +3,7 @@ using UnityEditor;
 using Unity.AI.Navigation;
 using UnityEngine.AI;
 
+
 [CustomEditor(typeof(TownGenerator))]
 public class TownGeneratorEditor : Editor
 {
@@ -145,22 +146,41 @@ public class TownGeneratorEditor : Editor
         EditorGUILayout.BeginHorizontal();
         if (GUILayout.Button("Save City"))
         {
-            string path = EditorUtility.SaveFilePanel("Save City Data", Application.dataPath, "CityData", "json");
+            string path = EditorUtility.SaveFilePanel("Save City Data", System.IO.Path.Combine(Application.dataPath, "CityData"), "NewCity", "json");
             if (!string.IsNullOrEmpty(path))
             {
-                generator.SaveCity(path);
+                // Defer the save operation to avoid errors from running complex logic during OnInspectorGUI.
+                EditorApplication.delayCall += () =>
+                {
+                    try
+                    {
+                        generator.SaveCity(path);
+                        AssetDatabase.Refresh();
+                        Debug.Log("Save operation completed via delayCall.");
+                    }
+                    catch (System.Exception e)
+                    {
+                        Debug.LogException(e);
+                    }
+                };
             }
         }
 
         if (GUILayout.Button("Load City"))
         {
-            string path = EditorUtility.OpenFilePanel("Load City Data", Application.dataPath, "json");
+            string path = EditorUtility.OpenFilePanel("Load City Data", System.IO.Path.Combine(Application.dataPath, "CityData"), "json");
             if (!string.IsNullOrEmpty(path))
             {
-                Undo.RecordObject(generator, "Load City");
-                generator.LoadCity(path);
-                EditorUtility.SetDirty(generator);
-                SceneView.RepaintAll();
+                // Defer the load operation to the next editor update.
+                // This prevents modifying scene hierarchy during OnInspectorGUI, which causes the EndLayoutGroup error.
+                EditorApplication.delayCall += () =>
+                {
+                    Debug.Log("Executing delayed LoadCity call...");
+                    Undo.RecordObject(generator, "Load City");
+                    generator.LoadCity(path);
+                    EditorUtility.SetDirty(generator);
+                    SceneView.RepaintAll();
+                };
             }
         }
         EditorGUILayout.EndHorizontal();
