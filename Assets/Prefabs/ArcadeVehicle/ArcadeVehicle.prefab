@@ -187,8 +187,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5431132470905025883}
-  - component: {fileID: 4534779779391606710}
-  - component: {fileID: 8278562529358618467}
+  - component: {fileID: 1938618812420470520}
   - component: {fileID: 2063525946721105342}
   m_Layer: 6
   m_Name: ArcadeVehicle
@@ -218,8 +217,8 @@ Transform:
   - {fileID: 4461188366330670704}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!65 &4534779779391606710
-BoxCollider:
+--- !u!143 &1938618812420470520
+CharacterController:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -233,39 +232,16 @@ BoxCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1.74, y: 2, z: 3.64}
-  m_Center: {x: 0, y: 1, z: 0}
---- !u!54 &8278562529358618467
-Rigidbody:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4065093141765531827}
-  serializedVersion: 5
-  m_Mass: 1
-  m_LinearDamping: 0
-  m_AngularDamping: 0.05
-  m_CenterOfMass: {x: 0, y: 0, z: 0}
-  m_InertiaTensor: {x: 1, y: 1, z: 1}
-  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ImplicitCom: 1
-  m_ImplicitTensor: 1
-  m_UseGravity: 1
-  m_IsKinematic: 0
-  m_Interpolate: 1
-  m_Constraints: 112
-  m_CollisionDetection: 1
+  m_Height: 2
+  m_Radius: 1.6
+  m_SlopeLimit: 45
+  m_StepOffset: 0.3
+  m_SkinWidth: 0.08
+  m_MinMoveDistance: 0.001
+  m_Center: {x: 0, y: 1.6, z: 0}
 --- !u!114 &2063525946721105342
 MonoBehaviour:
   m_ObjectHideFlags: 0

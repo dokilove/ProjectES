@@ -1,7 +1,8 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Unity.Cinemachine;
 
-[RequireComponent(typeof(Rigidbody))]
+[RequireComponent(typeof(CharacterController))]
 public class ArcadeVehicleController : MonoBehaviour
 {
     [Header("Data")]
@@ -10,109 +11,160 @@ public class ArcadeVehicleController : MonoBehaviour
     [Header("Grounding")]
     [Tooltip("Set this to the layer your ground objects are on.")]
     [SerializeField] private LayerMask groundLayer;
-    [Tooltip("How far down to check for ground from the vehicle's starting position.")]
     [SerializeField] private float groundCheckDistance = 50f;
 
-    private Rigidbody rb;
+    [Header("Cameras")]
+    public CinemachineCamera backViewCam;    // 백뷰 (평소)
+    public CinemachineCamera quarterViewCam; // 쿼터뷰 (전략)
+
+    private CharacterController characterController;
     private InputSystem_Actions playerActions;
+
     private Vector2 moveInput;
     private Vector3 moveDirection;
+    private float verticalVelocity;
+
+    // 카메라 상태 추적용 변수
+    private bool isBackViewActive = false;
 
     private void Awake()
     {
-        rb = GetComponent<Rigidbody>();
+        characterController = GetComponent<CharacterController>();
         playerActions = new InputSystem_Actions();
     }
 
     private void OnEnable()
     {
-        playerActions.Player.Enable();
+        playerActions.Vehicle_Arcade.Enable();
+
+        // 1. 카메라 전환 버튼 이벤트 연결 (performed 사용)
+        // 주의: Input Action Asset에 'ChangeCamera' 액션이 만들어져 있어야 합니다.
+        playerActions.Vehicle_Arcade.ChangeCamera.performed += OnChangeCamera;
     }
 
     private void OnDisable()
     {
-        playerActions.Player.Disable();
+        // 이벤트 연결 해제 (메모리 누수 방지)
+        playerActions.Vehicle_Arcade.ChangeCamera.performed -= OnChangeCamera;
+        playerActions.Vehicle_Arcade.Disable();
+    }
+
+    private void Start()
+    {
+        // 게임 시작 시 초기 카메라 상태 적용
+        UpdateCameraPriorities();
     }
 
     private void Update()
     {
-        moveInput = playerActions.Player.Move.ReadValue<Vector2>();
+        moveInput = playerActions.Vehicle_Arcade.Move.ReadValue<Vector2>();
     }
 
     private void FixedUpdate()
     {
         if (vehicleData == null) return;
 
-        rb.AddForce(Vector3.down * vehicleData.extraGravityForce, ForceMode.Acceleration);
-
+        HandleGravity();
         HandleMovement();
         HandleGroundSnapping();
     }
 
+    // --- [추가된 기능] 카메라 전환 로직 ---
+    private void OnChangeCamera(InputAction.CallbackContext context)
+    {
+        // 버튼을 누를 때마다 상태 반전 (True <-> False)
+        isBackViewActive = !isBackViewActive;
+        UpdateCameraPriorities();
+    }
+
+    private void UpdateCameraPriorities()
+    {
+        if (backViewCam == null || quarterViewCam == null) return;
+
+        if (isBackViewActive)
+        {
+            // 백뷰 활성화 (우선순위 높임)
+            backViewCam.Priority = 20;
+            quarterViewCam.Priority = 10;
+        }
+        else
+        {
+            // 쿼터뷰 활성화
+            backViewCam.Priority = 10;
+            quarterViewCam.Priority = 20;
+        }
+    }
+    // -------------------------------------
+
+    private void HandleGravity()
+    {
+        if (characterController.isGrounded)
+        {
+            verticalVelocity = -vehicleData.groundSnapForce;
+        }
+        else
+        {
+            verticalVelocity -= vehicleData.extraGravityForce * Time.fixedDeltaTime;
+        }
+        moveDirection.y = verticalVelocity;
+    }
+
     private void HandleMovement()
     {
-        rb.angularVelocity = Vector3.zero;
+        Transform cameraTransform = Camera.main.transform;
 
-        Vector3 cameraForward = Camera.main.transform.forward;
-        Vector3 cameraRight = Camera.main.transform.right;
-        Vector3 cameraUp = Camera.main.transform.up;
+        Vector3 cameraForward = cameraTransform.forward;
+        Vector3 cameraRight = cameraTransform.right;
 
         Vector3 effectiveForward;
         Vector3 effectiveRight;
 
-        // Check if camera is looking almost straight down (pitch ~90 degrees)
-        // If dot product of camera's forward and world down is close to 1, it's looking straight down.
+        // 카메라가 바닥을 보고 있는지 확인 (Dot Product)
         float dotProduct = Vector3.Dot(cameraForward, Vector3.down);
 
-        // Use a threshold (e.g., 0.9f) to determine if the camera is looking mostly straight down.
-        if (dotProduct > 0.9f) // Camera is looking mostly straight down (e.g., pitch > ~80 degrees)
+        // 
+        // 카메라가 90도 가까이 내려다볼 때의 이동 축 보정 로직
+        if (dotProduct > 0.9f)
         {
-            // In this case, 'up' on the stick should map to camera's 'up' (world forward/back)
-            // and 'right' on the stick maps to camera's 'right'.
-            effectiveForward = cameraUp; // This is world forward/back
-            effectiveRight = cameraRight;
+            effectiveForward = cameraTransform.up;
+            effectiveRight = cameraTransform.right;
         }
         else
         {
-            // Normal case: flatten camera's forward and right vectors
             effectiveForward = cameraForward;
             effectiveRight = cameraRight;
         }
 
-        effectiveForward.y = 0; // Always flatten to XZ plane
-        effectiveRight.y = 0;   // Always flatten to XZ plane
+        effectiveForward.y = 0;
+        effectiveRight.y = 0;
 
         effectiveForward.Normalize();
         effectiveRight.Normalize();
 
-        Vector3 currentMoveVector = (effectiveForward * moveInput.y + effectiveRight * moveInput.x);
+        Vector3 horizontalMoveVector = (effectiveForward * moveInput.y + effectiveRight * moveInput.x);
 
         if (moveInput.sqrMagnitude > 0.1f)
         {
-            moveDirection = currentMoveVector.normalized;
-            rb.linearVelocity = moveDirection * vehicleData.maxSpeed;
+            moveDirection.x = horizontalMoveVector.normalized.x * vehicleData.maxSpeed;
+            moveDirection.z = horizontalMoveVector.normalized.z * vehicleData.maxSpeed;
         }
         else
         {
-            rb.linearVelocity = Vector3.zero;
+            moveDirection.x = 0;
+            moveDirection.z = 0;
         }
 
-        if (currentMoveVector != Vector3.zero)
+        characterController.Move(moveDirection * Time.fixedDeltaTime);
+
+        if (horizontalMoveVector != Vector3.zero)
         {
-            Quaternion targetRotation = Quaternion.LookRotation(currentMoveVector);
-            rb.rotation = Quaternion.Slerp(rb.rotation, targetRotation, vehicleData.rotationSpeed * Time.fixedDeltaTime);
+            Quaternion targetRotation = Quaternion.LookRotation(horizontalMoveVector);
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, vehicleData.rotationSpeed * Time.fixedDeltaTime);
         }
     }
 
     private void HandleGroundSnapping()
     {
-        if (Physics.Raycast(transform.position, Vector3.down, vehicleData.groundSnapDistance, groundLayer))
-        {
-            if (rb.linearVelocity.y <= 0)
-            {
-                rb.AddForce(Vector3.down * vehicleData.groundSnapForce, ForceMode.Acceleration);
-            }
-        }
+        // CharacterController가 있으므로 현재는 비워둠
     }
 }
-
