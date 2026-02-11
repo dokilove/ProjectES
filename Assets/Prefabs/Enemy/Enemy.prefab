@@ -75,6 +75,9 @@ MonoBehaviour:
   attackRange: 1.5
   viewRadius: 30
   viewAngle: 90
+  visionLayerMask:
+    serializedVersion: 2
+    m_Bits: 2112
   baseFovMaterial: {fileID: 2100000, guid: ecde4d41658743642bb67b68aac4d65b, type: 2}
   detectionFovMeshFilter: {fileID: 1907227079767018992}
   detectionDuration: 1.5

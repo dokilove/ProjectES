@@ -12,6 +12,9 @@ public class EnemyAI : MonoBehaviour
     public float viewRadius = 10f;
     [Range(0, 360)]
     public float viewAngle = 90f;
+    public LayerMask visionLayerMask;
+    [Tooltip("The starting point of the vision ray, relative to the enemy's pivot.")]
+    public Vector3 visionOffset = new Vector3(0, 0.5f, 0);
     [Tooltip("The material for the base FOV mesh.")]
     public Material baseFovMaterial;
     [Tooltip("The MeshFilter of the child object used for the detection FOV.")]
@@ -248,16 +251,20 @@ public class EnemyAI : MonoBehaviour
     {
         if (target == null) return false;
 
-        Vector3 directionToTarget = (target.position - transform.position).normalized;
-        float distanceToTarget = Vector3.Distance(transform.position, target.position);
+        Vector3 visionStartPoint = transform.position + visionOffset;
+        // Aim for the center of the player, assuming player pivot is at the base
+        Vector3 targetPoint = target.position + Vector3.up * 1.0f; 
+        Vector3 directionToTarget = (targetPoint - visionStartPoint).normalized;
+        float distanceToTarget = Vector3.Distance(visionStartPoint, targetPoint);
 
         if (distanceToTarget < viewRadius)
         {
             if (Vector3.Angle(transform.forward, directionToTarget) < viewAngle / 2)
             {
-                if (Physics.Raycast(transform.position, directionToTarget, out RaycastHit hit, viewRadius))
+                if (Physics.Raycast(visionStartPoint, directionToTarget, out RaycastHit hit, viewRadius, visionLayerMask))
                 {
-                    return hit.transform == target;
+                    // Check if the ray hit the player or a part of the player
+                    return hit.transform.IsChildOf(target) || hit.transform == target;
                 }
             }
         }
@@ -288,7 +295,9 @@ public class EnemyAI : MonoBehaviour
         Vector3[] vertices = new Vector3[vertexCount];
         int[] triangles = new int[segments * 3];
 
-        Vector3 centerVertex = Vector3.up * 0.1f;
+        // The mesh is drawn in local space, so the center is near the origin.
+        // The y-offset should match the visionOffset for consistency.
+        Vector3 centerVertex = Vector3.up * visionOffset.y; 
         vertices[0] = centerVertex;
 
         float angleIncrement = viewAngle / segments;
@@ -296,8 +305,9 @@ public class EnemyAI : MonoBehaviour
 
         for (int i = 0; i <= segments; i++)
         {
-            Vector3 direction = Quaternion.Euler(0, currentAngle, 0) * transform.forward;
-            vertices[i + 1] = centerVertex + direction * radius;
+            // Calculate direction in local space (relative to Z-forward)
+            Vector3 localDirection = Quaternion.Euler(0, currentAngle, 0) * Vector3.forward;
+            vertices[i + 1] = centerVertex + localDirection * radius;
             currentAngle += angleIncrement;
         }
 
@@ -334,17 +344,36 @@ public class EnemyAI : MonoBehaviour
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, viewRadius);
 
+        Vector3 visionStartPoint = transform.position + visionOffset;
+
         Vector3 leftRayDirection = Quaternion.Euler(0, -viewAngle / 2, 0) * transform.forward;
         Vector3 rightRayDirection = Quaternion.Euler(0, viewAngle / 2, 0) * transform.forward;
 
         Gizmos.color = Color.blue;
-        Gizmos.DrawRay(transform.position, leftRayDirection * viewRadius);
-        Gizmos.DrawRay(transform.position, rightRayDirection * viewRadius);
+        Gizmos.DrawRay(visionStartPoint, leftRayDirection * viewRadius);
+        Gizmos.DrawRay(visionStartPoint, rightRayDirection * viewRadius);
 
-        if (target != null && CheckFOV())
+        if (target != null)
         {
-            Gizmos.color = Color.red;
-            Gizmos.DrawLine(transform.position, target.position);
+            // Aim for the center of the player
+            Vector3 targetPoint = target.position + Vector3.up * 1.0f;
+            Vector3 directionToTarget = (targetPoint - visionStartPoint).normalized;
+            
+            // Visualize the actual ray being cast
+            Gizmos.color = Color.magenta;
+            Gizmos.DrawRay(visionStartPoint, directionToTarget * viewRadius);
+
+            if (Physics.Raycast(visionStartPoint, directionToTarget, out RaycastHit hit, viewRadius, visionLayerMask))
+            {
+                Gizmos.color = Color.green;
+                Gizmos.DrawLine(visionStartPoint, hit.point);
+
+                if (hit.transform.IsChildOf(target) || hit.transform == target)
+                {
+                    Gizmos.color = Color.red;
+                    Gizmos.DrawLine(visionStartPoint, hit.point);
+                }
+            }
         }
     }
 
