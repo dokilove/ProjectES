@@ -8,6 +8,12 @@ public class ArcadeVehicleController : MonoBehaviour
     [Header("Data")]
     [SerializeField] private ArcadeVehicleDataSO vehicleData;
 
+    [Header("Movement Tuning")]
+    [Tooltip("아크 턴(Arc Turn)의 묵직함을 결정하는 가속/감속 수치입니다.")]
+    [SerializeField] private float acceleration = 5f;
+    [SerializeField] private float deceleration = 8f;
+    private float currentSpeed = 0f; // 현재 속도 캐싱
+
     [Header("Grounding")]
     [Tooltip("Set this to the layer your ground objects are on.")]
     [SerializeField] private LayerMask groundLayer;
@@ -36,22 +42,17 @@ public class ArcadeVehicleController : MonoBehaviour
     private void OnEnable()
     {
         playerActions.Vehicle_Arcade.Enable();
-
-        // 1. 카메라 전환 버튼 이벤트 연결 (performed 사용)
-        // 주의: Input Action Asset에 'ChangeCamera' 액션이 만들어져 있어야 합니다.
         playerActions.Vehicle_Arcade.ChangeCamera.performed += OnChangeCamera;
     }
 
     private void OnDisable()
     {
-        // 이벤트 연결 해제 (메모리 누수 방지)
         playerActions.Vehicle_Arcade.ChangeCamera.performed -= OnChangeCamera;
         playerActions.Vehicle_Arcade.Disable();
     }
 
     private void Start()
     {
-        // 게임 시작 시 초기 카메라 상태 적용
         UpdateCameraPriorities();
     }
 
@@ -69,10 +70,8 @@ public class ArcadeVehicleController : MonoBehaviour
         HandleGroundSnapping();
     }
 
-    // --- [추가된 기능] 카메라 전환 로직 ---
     private void OnChangeCamera(InputAction.CallbackContext context)
     {
-        // 버튼을 누를 때마다 상태 반전 (True <-> False)
         isBackViewActive = !isBackViewActive;
         UpdateCameraPriorities();
     }
@@ -83,18 +82,15 @@ public class ArcadeVehicleController : MonoBehaviour
 
         if (isBackViewActive)
         {
-            // 백뷰 활성화 (우선순위 높임)
             backViewCam.Priority = 20;
             quarterViewCam.Priority = 10;
         }
         else
         {
-            // 쿼터뷰 활성화
             backViewCam.Priority = 10;
             quarterViewCam.Priority = 20;
         }
     }
-    // -------------------------------------
 
     private void HandleGravity()
     {
@@ -106,6 +102,8 @@ public class ArcadeVehicleController : MonoBehaviour
         {
             verticalVelocity -= vehicleData.extraGravityForce * Time.fixedDeltaTime;
         }
+
+        // y축 속도만 갱신 (x, z는 HandleMovement에서 덮어씌움)
         moveDirection.y = verticalVelocity;
     }
 
@@ -119,11 +117,8 @@ public class ArcadeVehicleController : MonoBehaviour
         Vector3 effectiveForward;
         Vector3 effectiveRight;
 
-        // 카메라가 바닥을 보고 있는지 확인 (Dot Product)
         float dotProduct = Vector3.Dot(cameraForward, Vector3.down);
 
-        // 
-        // 카메라가 90도 가까이 내려다볼 때의 이동 축 보정 로직
         if (dotProduct > 0.9f)
         {
             effectiveForward = cameraTransform.up;
@@ -141,26 +136,35 @@ public class ArcadeVehicleController : MonoBehaviour
         effectiveForward.Normalize();
         effectiveRight.Normalize();
 
-        Vector3 horizontalMoveVector = (effectiveForward * moveInput.y + effectiveRight * moveInput.x);
+        // 목표 이동 방향 벡터
+        Vector3 targetMoveVector = (effectiveForward * moveInput.y + effectiveRight * moveInput.x);
 
-        if (moveInput.sqrMagnitude > 0.1f)
+        // --- 여기서부터 아크(Arc) 턴 로직 적용 ---
+        if (targetMoveVector.sqrMagnitude > 0.01f)
         {
-            moveDirection.x = horizontalMoveVector.normalized.x * vehicleData.maxSpeed;
-            moveDirection.z = horizontalMoveVector.normalized.z * vehicleData.maxSpeed;
+            // 1. [조향] 목표 방향으로 차체를 부드럽게 회전시킵니다.
+            Quaternion targetRotation = Quaternion.LookRotation(targetMoveVector.normalized);
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, vehicleData.rotationSpeed * Time.fixedDeltaTime);
+
+            // 2. [가속] 입력이 있을 때 최고 속도를 향해 서서히 가속합니다.
+            float inputMagnitude = Mathf.Clamp01(targetMoveVector.magnitude);
+            currentSpeed = Mathf.Lerp(currentSpeed, vehicleData.maxSpeed * inputMagnitude, acceleration * Time.fixedDeltaTime);
         }
         else
         {
-            moveDirection.x = 0;
-            moveDirection.z = 0;
+            // 3. [감속] 입력이 없으면 서서히 멈춥니다.
+            currentSpeed = Mathf.Lerp(currentSpeed, 0, deceleration * Time.fixedDeltaTime);
         }
 
+        // 4. [이동] 입력 방향(targetMoveVector)이 아닌, "현재 차체의 앞방향(Forward)"으로 속도를 적용합니다.
+        Vector3 forwardVelocity = transform.forward * currentSpeed;
+
+        // X, Z 축 이동 방향 갱신 (Y축은 HandleGravity에서 유지 중)
+        moveDirection.x = forwardVelocity.x;
+        moveDirection.z = forwardVelocity.z;
+
+        // 최종 이동 적용
         characterController.Move(moveDirection * Time.fixedDeltaTime);
-
-        if (horizontalMoveVector != Vector3.zero)
-        {
-            Quaternion targetRotation = Quaternion.LookRotation(horizontalMoveVector);
-            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, vehicleData.rotationSpeed * Time.fixedDeltaTime);
-        }
     }
 
     private void HandleGroundSnapping()
