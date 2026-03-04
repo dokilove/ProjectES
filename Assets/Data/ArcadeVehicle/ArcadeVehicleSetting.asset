@@ -17,3 +17,9 @@ MonoBehaviour:
   extraGravityForce: 20
   groundSnapDistance: 1.5
   groundSnapForce: 60
+  minDashSpeed: 30
+  maxDashSpeed: 50
+  minChargeTime: 0.2
+  maxChargeTime: 3
+  minDashDuration: 0.5
+  maxDashDuration: 1.5

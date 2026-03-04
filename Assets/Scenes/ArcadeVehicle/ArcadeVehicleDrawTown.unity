@@ -6131,7 +6131,7 @@ MonoBehaviour:
   minimapTexture: {fileID: 8400000, guid: df2cdd215a5d816448624c9b055cd12d, type: 2}
   cameraHeight: 100
   cameraSize: 100
-  cameraSwitcher: {fileID: 2109402101}
+  cameraSwitcher: {fileID: 0}
 --- !u!1 &179964380
 GameObject:
   m_ObjectHideFlags: 0
@@ -6913,6 +6913,11 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 195494844}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!4 &195850219 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2429870764707866148, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
+  m_PrefabInstance: {fileID: 309706356}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &198957284
 GameObject:
   m_ObjectHideFlags: 0
@@ -10916,13 +10921,49 @@ PrefabInstance:
     m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: 2063525946721105342, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
+      propertyPath: carModel
+      value: 
+      objectReference: {fileID: 195850219}
+    - target: {fileID: 2063525946721105342, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
       propertyPath: backViewCam
       value: 
       objectReference: {fileID: 931396720}
     - target: {fileID: 2063525946721105342, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
+      propertyPath: dashPushForce
+      value: 100
+      objectReference: {fileID: 0}
+    - target: {fileID: 2063525946721105342, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
+      propertyPath: dashPushRadius
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 2063525946721105342, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
       propertyPath: quarterViewCam
       value: 
       objectReference: {fileID: 228394611}
+    - target: {fileID: 2063525946721105342, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
+      propertyPath: scalePulseSpeed
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: 2063525946721105342, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
+      propertyPath: dashStretchAmount
+      value: 0.2
+      objectReference: {fileID: 0}
+    - target: {fileID: 2063525946721105342, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
+      propertyPath: enemyLayer.m_Bits
+      value: 512
+      objectReference: {fileID: 0}
+    - target: {fileID: 2063525946721105342, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
+      propertyPath: maxScalePulseSpeed
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: 2063525946721105342, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
+      propertyPath: minScalePulseSpeed
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 2063525946721105342, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
+      propertyPath: showDashRadiusInGame
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 3094942965558459550, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -19537,6 +19578,7 @@ GameObject:
   - component: {fileID: 576020280}
   - component: {fileID: 576020279}
   - component: {fileID: 576020283}
+  - component: {fileID: 576020284}
   m_Layer: 0
   m_Name: MainCamera
   m_TagString: MainCamera
@@ -19694,6 +19736,24 @@ MonoBehaviour:
       m_PostInfinity: 2
       m_RotationOrder: 4
   CustomBlends: {fileID: 0}
+--- !u!114 &576020284
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 576020278}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 96e06f58e2e20a44c8f16ce791e1c67a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CameraOcclusionFader
+  target: {fileID: 309706357}
+  occlusionLayer:
+    serializedVersion: 2
+    m_Bits: 2048
+  fadedAlpha: 0.3
+  fadeSpeed: 10
 --- !u!1 &577557410
 GameObject:
   m_ObjectHideFlags: 0
@@ -22030,6 +22090,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Enemy (1)
       objectReference: {fileID: 0}
+    - target: {fileID: 8485258268578485126, guid: c23654af639fb9246ba8869e810f0cb0, type: 3}
+      propertyPath: m_IsKinematic
+      value: 1
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -24093,6 +24157,10 @@ PrefabInstance:
     - target: {fileID: 2861615370398177607, guid: c23654af639fb9246ba8869e810f0cb0, type: 3}
       propertyPath: m_Name
       value: Enemy
+      objectReference: {fileID: 0}
+    - target: {fileID: 8485258268578485126, guid: c23654af639fb9246ba8869e810f0cb0, type: 3}
+      propertyPath: m_IsKinematic
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -39351,6 +39419,10 @@ PrefabInstance:
     - target: {fileID: 2861615370398177607, guid: 9d2e587bf3d834c50ad6c716f901ed85, type: 3}
       propertyPath: m_Name
       value: Enemy_Small
+      objectReference: {fileID: 0}
+    - target: {fileID: 8485258268578485126, guid: 9d2e587bf3d834c50ad6c716f901ed85, type: 3}
+      propertyPath: m_IsKinematic
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -64014,7 +64086,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2109402102}
-  - component: {fileID: 2109402101}
   m_Layer: 0
   m_Name: CameraManager
   m_TagString: Untagged
@@ -64022,21 +64093,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &2109402101
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2109402100}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e9872ada88ff75e4aa2c3606c76cebab, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CameraSwitcher
-  cameras:
-  - {fileID: 0}
-  - {fileID: 0}
 --- !u!4 &2109402102
 Transform:
   m_ObjectHideFlags: 0

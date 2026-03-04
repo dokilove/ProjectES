@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UIElements;
 
-// v1.6: Reverted to simpler rotation logic, removed goal-pointing.
+// v1.7: Removed CameraSwitcher dependency, now uses Camera.main
 public class UIToolkitMinimapController : MonoBehaviour
 {
     [Header("UI Setup")]
@@ -15,10 +15,6 @@ public class UIToolkitMinimapController : MonoBehaviour
     public float cameraHeight = 100f;
     [Tooltip("미니맵 카메라의 시야 크기 (Zoom).")]
     public float cameraSize = 25f;
-
-    [Header("Dependencies")]
-    [Tooltip("카메라를 관리하는 CameraSwitcher 스크립트.")]
-    public CameraSwitcher cameraSwitcher;
 
     private Transform playerTransform;
     private Camera minimapCamera;
@@ -35,15 +31,6 @@ public class UIToolkitMinimapController : MonoBehaviour
             return;
         }
         playerTransform = playerObject.transform;
-
-        // 의존성 스크립트들 찾기
-        if (cameraSwitcher == null) cameraSwitcher = FindObjectOfType<CameraSwitcher>();
-        if (cameraSwitcher == null)
-        {
-            Debug.LogError("MinimapController: 씬에서 CameraSwitcher를 찾을 수 없습니다!");
-            this.enabled = false;
-            return;
-        }
 
         // UI 요소 찾기
         var root = uiDocument.rootVisualElement;
@@ -74,15 +61,20 @@ public class UIToolkitMinimapController : MonoBehaviour
 
     void LateUpdate()
     {
-        if (playerTransform == null || minimapCamera == null || cameraSwitcher == null) return;
+        if (playerTransform == null || minimapCamera == null) return;
 
         // 미니맵 카메라 위치 업데이트
         Vector3 newPos = playerTransform.position;
         newPos.y = cameraHeight;
         minimapCamera.transform.position = newPos;
 
-        Camera activeCam = cameraSwitcher.ActiveCamera;
-        if (activeCam == null) return;
+        // Get the main camera directly
+        Camera activeCam = Camera.main;
+        if (activeCam == null) 
+        {
+            Debug.LogWarning("MinimapController: Camera.main is null. Ensure your main camera has the 'MainCamera' tag.");
+            return;
+        }
 
         // 이전 버전의 회전 로직으로 복원
         Vector3 referenceForward;

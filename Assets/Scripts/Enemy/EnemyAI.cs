@@ -52,6 +52,12 @@ public class EnemyAI : MonoBehaviour
     public float chaseDurationAfterLostSight = 3f;
     private float chaseTimer;
 
+    // --- Physics State ---
+    private Rigidbody rb;
+    private bool isStunned = false;
+    public float stunDuration = 1.0f;
+    // ---------------------
+
     void OnEnable()
     {
         // This event is no longer needed as we will place the agent using NavMesh
@@ -66,6 +72,7 @@ public class EnemyAI : MonoBehaviour
     void Start()
     {
         agent = GetComponent<NavMeshAgent>();
+        rb = GetComponent<Rigidbody>(); // Get the Rigidbody component
         townGenerator = FindObjectOfType<TownGenerator>();
 
         if (townGenerator == null)
@@ -73,6 +80,12 @@ public class EnemyAI : MonoBehaviour
             Debug.LogError("EnemyAI: TownGenerator not found in the scene!", this);
             enabled = false;
             return;
+        }
+
+        // Ensure Rigidbody is initially kinematic
+        if (rb != null)
+        {
+            rb.isKinematic = true;
         }
 
         SetupBaseFOV();
@@ -94,6 +107,9 @@ public class EnemyAI : MonoBehaviour
 
     void Update()
     {
+        // If stunned, do nothing else
+        if (isStunned) return;
+
         if (target == null)
         {
             FindPlayer();
@@ -109,6 +125,69 @@ public class EnemyAI : MonoBehaviour
 
         DrawBaseFOVMesh();
         DrawDetectionFOVMesh();
+    }
+
+    public void ApplyPushForce(Vector3 forceDirection, float forceMagnitude)
+    {
+        if (isStunned)
+        {
+            Debug.Log($"[EnemyAI] '{name}' is already stunned. Ignoring new force.", this);
+            return;
+        }
+
+        StartCoroutine(StunAndRecover(forceDirection, forceMagnitude));
+    }
+
+    private System.Collections.IEnumerator StunAndRecover(Vector3 forceDirection, float forceMagnitude)
+    {
+        Debug.Log($"[EnemyAI] '{name}' starting stun coroutine.", this);
+        isStunned = true;
+        
+        if(agent.isOnNavMesh)
+        {
+            Debug.Log($"[EnemyAI] Disabling NavMeshAgent.", this);
+            agent.enabled = false;
+        }
+
+        if (rb != null)
+        {
+            Debug.Log($"[EnemyAI] Setting Rigidbody to non-kinematic and applying force.", this);
+            rb.isKinematic = false;
+            rb.AddForce(forceDirection * forceMagnitude, ForceMode.Impulse);
+        }
+
+        Debug.Log($"[EnemyAI] Waiting for {stunDuration} seconds.", this);
+        yield return new WaitForSeconds(stunDuration);
+
+        Debug.Log($"[EnemyAI] Recovering from stun.", this);
+        if (rb != null)
+        {
+            rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+            rb.isKinematic = true;
+            Debug.Log($"[EnemyAI] Rigidbody reset and set to kinematic.", this);
+        }
+
+        // Increase search radius to find a valid NavMesh point more reliably
+        if (NavMesh.SamplePosition(transform.position, out NavMeshHit hit, 10.0f, NavMesh.AllAreas))
+        {
+            transform.position = hit.position; // Snap to the nearest valid NavMesh point
+            agent.enabled = true;
+            agent.Warp(transform.position); // Sync agent's internal position
+            currentState = EnemyState.Chasing; // Immediately chase after recovering
+            chaseTimer = chaseDurationAfterLostSight;
+            Debug.Log($"[EnemyAI] NavMeshAgent re-enabled and warped to new position. Resuming chase.", this);
+        }
+        else
+        {
+            // If we still can't find a valid NavMesh point, log a warning but do not disable.
+            // The enemy might be pushed somewhere recoverable later, or might need manual reset.
+            Debug.LogWarning($"[EnemyAI] '{name}' recovered in a non-navigable area and could not find a nearby NavMesh. AI will be inactive.", this);
+            // We don't re-enable the agent, so it will just stay put.
+        }
+
+        isStunned = false;
+        Debug.Log($"[EnemyAI] Stun finished.", this);
     }
 
     private void HandleStateMachine(bool playerInFOV)
