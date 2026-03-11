@@ -6131,7 +6131,6 @@ MonoBehaviour:
   minimapTexture: {fileID: 8400000, guid: df2cdd215a5d816448624c9b055cd12d, type: 2}
   cameraHeight: 100
   cameraSize: 100
-  cameraSwitcher: {fileID: 0}
 --- !u!1 &179964380
 GameObject:
   m_ObjectHideFlags: 0
@@ -6913,11 +6912,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 195494844}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
---- !u!4 &195850219 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 2429870764707866148, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
-  m_PrefabInstance: {fileID: 309706356}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &198957284
 GameObject:
   m_ObjectHideFlags: 0
@@ -10921,31 +10915,15 @@ PrefabInstance:
     m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: 2063525946721105342, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
-      propertyPath: carModel
-      value: 
-      objectReference: {fileID: 195850219}
-    - target: {fileID: 2063525946721105342, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
       propertyPath: backViewCam
       value: 
       objectReference: {fileID: 931396720}
-    - target: {fileID: 2063525946721105342, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
-      propertyPath: dashPushForce
-      value: 100
-      objectReference: {fileID: 0}
-    - target: {fileID: 2063525946721105342, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
-      propertyPath: dashPushRadius
-      value: 5
-      objectReference: {fileID: 0}
     - target: {fileID: 2063525946721105342, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
       propertyPath: quarterViewCam
       value: 
       objectReference: {fileID: 228394611}
     - target: {fileID: 2063525946721105342, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
-      propertyPath: scalePulseSpeed
-      value: 20
-      objectReference: {fileID: 0}
-    - target: {fileID: 2063525946721105342, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
-      propertyPath: dashStretchAmount
+      propertyPath: scalePulseAmount
       value: 0.2
       objectReference: {fileID: 0}
     - target: {fileID: 2063525946721105342, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
@@ -10953,20 +10931,8 @@ PrefabInstance:
       value: 512
       objectReference: {fileID: 0}
     - target: {fileID: 2063525946721105342, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
-      propertyPath: maxScalePulseSpeed
-      value: 20
-      objectReference: {fileID: 0}
-    - target: {fileID: 2063525946721105342, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
-      propertyPath: minScalePulseSpeed
-      value: 10
-      objectReference: {fileID: 0}
-    - target: {fileID: 2063525946721105342, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
       propertyPath: showDashRadiusInGame
       value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 3094942965558459550, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
-      propertyPath: m_Layer
-      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 4065093141765531827, guid: 0fbfa226b18481740819394c992f1ad6, type: 3}
       propertyPath: m_Name
